@@ -8,9 +8,6 @@ export declare class SqlStore {
     getContainer(options: {
         name: string;
     }): Promise<any>;
-    containerExists(options: {
-        name: string;
-    }): Promise<boolean>;
     deleteContainer(options: {
         name: string;
     }): Promise<void>;

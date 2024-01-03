@@ -27,14 +27,6 @@ class SqlStore {
         const name = options.name.toLowerCase();
         return this.db.getOne(`SELECT * from schema WHERE container = '${name}'`);
     }
-    async containerExists(options) {
-        console.log("SqlStore.containerExists()");
-        if (!this.db)
-            throw new SqlDB_1.NoDatabaseException();
-        const name = options.name.toLowerCase();
-        const exists = await this.db.getOne(`SELECT container from schema WHERE container = '${name}'`);
-        return (exists ? true : false);
-    }
     async deleteContainer(options) {
         console.log("SqlStore.deleteContainer()");
         if (!this.db)

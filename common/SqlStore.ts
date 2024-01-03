@@ -2,7 +2,6 @@ import { Change, Comparison, ContainerDef, DataType, Expression, ObjectDef, Sche
 import { DBPropDef, NoDatabaseException, SqlDB } from "./SqlDB";
 import { QueryParams } from "./QueryParams";
 import { formatDateTime, isString, uuid } from "rant-utils";
-import { Query } from "pg";
 
 export class SqlStore {
 
@@ -32,16 +31,6 @@ export class SqlStore {
 
         const name = options.name.toLowerCase();
         return this.db.getOne(`SELECT * from schema WHERE container = '${name}'`);
-    }
-    async containerExists(options: {
-        name: string,
-    }) {
-        console.log("SqlStore.containerExists()");
-        if (!this.db) throw new NoDatabaseException();
-
-        const name = options.name.toLowerCase();
-        const exists = await this.db.getOne(`SELECT container from schema WHERE container = '${name}'`);
-        return (exists ? true : false);
     }
 
     async deleteContainer(options: {
