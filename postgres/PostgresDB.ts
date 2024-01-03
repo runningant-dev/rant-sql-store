@@ -39,9 +39,7 @@ export class PostgresDB extends SqlDB {
     }
 
     async getAll(sql: string, params?: any[]) {
-        console.log("b")
         const queryResult = await this.db.query(sql, params);
-        console.log("c")
         if (!queryResult || queryResult.rows.length <= 0) return undefined;
         return queryResult.rows;
     }

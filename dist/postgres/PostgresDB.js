@@ -33,9 +33,7 @@ class PostgresDB extends SqlDB_1.SqlDB {
         }
     }
     async getAll(sql, params) {
-        console.log("b");
         const queryResult = await this.db.query(sql, params);
-        console.log("c");
         if (!queryResult || queryResult.rows.length <= 0)
             return undefined;
         return queryResult.rows;
