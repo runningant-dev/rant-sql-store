@@ -12,8 +12,8 @@
   "dependencies": {
     "@types/sqlite3": "^3.1.8",
     "pg": "^8.11.0",
-    "rant-store": "github:runningant-dev/rant-store",
-    "rant-utils": "github:runningant-dev/rant-utils",
+    "rant-store": "^0.0.3",
+    "rant-utils": "^0.0.1",
     "sqlite": "^4.2.1",
     "sqlite3": "^5.1.6"
   },
