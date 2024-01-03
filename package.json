@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/sqlite3": "^3.1.8",
+    "dotenv": "^16.3.1",
     "pg": "^8.11.0",
     "rant-store": "^0.0.3",
     "rant-utils": "^0.0.1",
