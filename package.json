@@ -14,9 +14,7 @@
     "dotenv": "^16.3.1",
     "pg": "^8.11.0",
     "rant-store": "^0.0.3",
-    "rant-utils": "^0.0.1",
-    "sqlite": "^4.2.1",
-    "sqlite3": "^5.1.6"
+    "rant-utils": "^0.0.1"
   },
   "devDependencies": {
     "@types/pg": "^8.10.1"
