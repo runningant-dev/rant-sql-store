@@ -17,7 +17,7 @@ export class PostgresStore extends SqlStore {
             user: env.DB_USER,
             password: env.DB_PASSWORD,
             database: env.DB_DATABASE,
-            ssl: (env.DB_SSL ? true : false),
+            ssl: (env.DB_SSL === "true" ? true : false),
         });
         await db.connect();
         this.db = db;   
