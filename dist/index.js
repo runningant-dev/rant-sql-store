@@ -17,4 +17,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./postgres/PostgresDB"), exports);
 __exportStar(require("./postgres/PostgresStore"), exports);
 __exportStar(require("./postgres/PostgresStoreFactory"), exports);
-// export * from "./sqlite/SqliteStoreFactory"
+__exportStar(require("./sqlite/SqliteDB"), exports);
+__exportStar(require("./sqlite/SqliteStore"), exports);
+__exportStar(require("./sqlite/SqliteStoreFactory"), exports);
