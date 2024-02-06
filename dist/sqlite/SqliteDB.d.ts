@@ -12,8 +12,6 @@ export declare class SqliteDB extends SqlDB {
     getOne(sql: string, params?: any[]): Promise<any | undefined>;
     getAll(sql: string, params?: any | any[]): Promise<any>;
     tableExists(name: string): Promise<boolean>;
-    establishBaseRequirements(): Promise<void>;
-    createSearchTable(searchTableName: string): Promise<void>;
     getUserTables(): Promise<any>;
     getTableColumns(tableName: string): Promise<any>;
     formatParamName(p: QueryParam): string;

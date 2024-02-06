@@ -8,6 +8,13 @@ export interface DBPropDef {
 export declare class NoDatabaseException {
 }
 export declare class SqlDB {
+    options: {
+        dataTypes: {
+            small: string;
+            large: string;
+            autoInc: string;
+        };
+    };
     connect(): Promise<void>;
     close(): Promise<void>;
     checkForBaseRequirements(): Promise<void>;
@@ -19,14 +26,15 @@ export declare class SqlDB {
     tableExists(name: string): Promise<boolean>;
     getTableColumns(name: string): Promise<any[] | undefined>;
     establishBaseRequirements(): Promise<void>;
+    sanitizeName(name: string): string;
     createContainer(options: {
         name: string;
     }): Promise<void>;
     getSearchTableName(container: string): string;
     searchTableExists(container: string): Promise<boolean>;
     parseSearchWithin(searchWithin: PropDef[] | undefined): DBPropDef[];
-    logChange(container: string, key: string, change: Change): Promise<void>;
-    createSearchTable(name: string): Promise<void>;
+    logChange(container: string, id: string, change: Change): Promise<void>;
+    createSearchTable(searchTableName: string): Promise<void>;
     getUserTables(): Promise<any[] | undefined>;
     formatParamName(p: QueryParam): string;
     prepareParams(q: QueryParams): any;

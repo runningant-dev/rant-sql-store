@@ -12,8 +12,6 @@ export declare class PostgresDB extends SqlDB {
     getOne(sql: string, params?: any[]): Promise<any | undefined>;
     getAll(sql: string, params?: any[]): Promise<any[] | undefined>;
     tableExists(name: string): Promise<boolean>;
-    establishBaseRequirements(): Promise<void>;
-    createSearchTable(searchTableName: string): Promise<void>;
     getUserTables(): Promise<any[] | undefined>;
     getTableColumns(tableName: string): Promise<any[] | undefined>;
     formatParamName(p: QueryParam): string;

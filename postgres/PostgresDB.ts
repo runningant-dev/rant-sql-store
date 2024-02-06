@@ -59,19 +59,6 @@ export class PostgresDB extends SqlDB {
         return (exists !== undefined);
     }
 
-    async establishBaseRequirements() {
-        await this.exec(`
-            CREATE TABLE schema (container TEXT NOT NULL, indexes TEXT, sensitive TEXT, updated TEXT); 
-            CREATE UNIQUE INDEX idx_schema_container ON schema (container);
-
-            CREATE TABLE changes (id bigserial primary key, container TEXT NOT NULL, key TEXT, change TEXT NOT NULL, timestamp TEXT); 
-        `);
-    }
-
-    async createSearchTable(searchTableName: string) {
-        this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} (key TEXT NOT NULL PRIMARY KEY)`);
-    }
-
     async getUserTables() {
         return await this.getAll(`
             select table_name as name
@@ -80,16 +67,19 @@ export class PostgresDB extends SqlDB {
         `);
     }
 
-    async getTableColumns(tableName: string) {
-        return this.getAll(`
+    async getTableColumns(tableName: string): Promise<any[] | undefined> {
+        const params = new QueryParams(this);
+        params.add("tableName", tableName);
+
+        const result: any[] | undefined = await this.getAll(`
             SELECT column_name as name, data_type as type
             FROM information_schema.columns
-            WHERE table_name = $1;
-        `, [
-            tableName,
-        ]);
-    }
+            WHERE table_name = ${params.name("tableName")};
+        `, params.prepare());
 
+        return result;
+    }
+    
     formatParamName(p: QueryParam) {
         return "$" + (p.index + 1);
     }

@@ -13,12 +13,14 @@
     "@types/sqlite3": "^3.1.8",
     "dotenv": "^16.3.1",
     "pg": "^8.11.0",
-    "rant-store": "^0.0.3",
+    "rant-store": "^0.0.4",
     "rant-utils": "^0.0.1",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7-rc.0"
+    "sqlite3": "^5.1.7-rc.0",
+    "tedious": "^16.6.1"
   },
   "devDependencies": {
-    "@types/pg": "^8.10.1"
+    "@types/pg": "^8.10.1",
+    "@types/tedious": "^4.0.14"
   }
 }

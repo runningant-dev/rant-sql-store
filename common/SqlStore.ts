@@ -140,7 +140,7 @@ export class SqlStore {
 
         // console.log(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
         // console.log(JSON.stringify(params))
-        const sql = `UPDATE schema SET ${updates.join(",")} WHERE container=${params.name("name")}`;
+        const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE container=${params.name("name")}`;
         console.log(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
         const execResult = await this.db.exec(
             sql,
@@ -165,7 +165,7 @@ export class SqlStore {
             const toPopulate = [];
 
             // what columns need to be added?
-            const namesRequired = ["key"];
+            const namesRequired = ["id"];
             for(let prop of props) {
                 namesRequired.push(prop.name);
 
@@ -201,11 +201,11 @@ export class SqlStore {
             if (toPopulate.length > 0) {
                 const { rebuildIndex } = this.indexUpdater(options.name, toPopulate);
 
-                const data = await this.db.getAll(`SELECT key, value FROM ${this.db.encodeName(baseTableName)}`);
+                const data = await this.db.getAll(`SELECT id, value FROM ${this.db.encodeName(baseTableName)}`);
                 if (data) {
                     for(let row of data) {
                         const value = JSON.parse(row.value);
-                        await rebuildIndex(row.key, value, isNewTable);
+                        await rebuildIndex(row.id, value, isNewTable);
                     }
                 }
             }
@@ -231,7 +231,7 @@ export class SqlStore {
         for(let def of props) {
             params.add(def.name);
         }
-        params.add("key");
+        params.add("id");
 
         let attribColumnNames = props.map((def, i) => {
             return def.name;
@@ -246,15 +246,15 @@ export class SqlStore {
 
         const searchTableName = this.db!.getSearchTableName(container);
 
-        const doInsert = async (values: any, key: string) => {
+        const doInsert = async (values: any, id: string) => {
             if (!this.db) throw new NoDatabaseException();
 
             params.setValues(values);
 
             const sql = `
                 INSERT INTO ${this.db.encodeName(searchTableName)} 
-                (key, ${attribColumnNames})
-                VALUES (${params.name("key")}, ${attribValueParams})`;
+                (id, ${attribColumnNames})
+                VALUES (${params.name("id")}, ${attribValueParams})`;
             console.log(sql);
             console.log(JSON.stringify(params))
             console.log(JSON.stringify(attribColumnNames))
@@ -263,7 +263,7 @@ export class SqlStore {
                 params.prepare(),
             );
         }
-        const doUpdate = async (values: any, key: string) => {
+        const doUpdate = async (values: any, id: string) => {
             if (!this.db) throw new NoDatabaseException();
 
             params.setValues(values);
@@ -271,25 +271,25 @@ export class SqlStore {
             const sql = `
                 UPDATE ${this.db.encodeName(searchTableName)}
                 SET ${attribUpdatePairs}
-                WHERE key=${params.name("key")}`;
+                WHERE id=${params.name("id")}`;
             console.log(sql);
             const result = await this.db.exec(
                 sql,
                 params.prepare(),
             );
             if (!result.rowCount) {
-                await doInsert(values, key);
+                await doInsert(values, id);
             }
         }
 
         // NOTE: value is object not json
         async function rebuildIndex(
-            key: string, value: any, 
+            id: string, value: any, 
             // if know for sure its a new object then slightly faster to just insert instead try update and fallback to insert
             isNewObject?: boolean
         ) {
             console.log("SqlStore.indexUpdater.rebuildIndex()");
-            // console.log("rebuildIndex: " + key + ": " + JSON.stringify(value));
+            // console.log("rebuildIndex: " + id + ": " + JSON.stringify(value));
 
             const values: any = {};
 
@@ -323,11 +323,11 @@ export class SqlStore {
                 values[prop.name] = v;
             }
 
-            values.key = key;
+            values.id = id;
             if (isNewObject) {
-                await doInsert(values, key);
+                await doInsert(values, id);
             } else {
-                await doUpdate(values, key);
+                await doUpdate(values, id);
             }
         }
 
@@ -339,17 +339,17 @@ export class SqlStore {
 
     async get(options: {
         container: string, 
-        key: string,
+        id: string,
     }) {
         console.log("SqlStore.get()");
         if (!this.db) throw new NoDatabaseException();
 
         const params = new QueryParams(this.db);
-        params.add("key", options.key);
+        params.add("id", options.id);
 
         const row = await this.db.getOne(`
             SELECT value FROM ${this.db.encodeName(options.container)} 
-            WHERE key like ${params.name("key")}
+            WHERE id like ${params.name("id")}
         `, params.prepare());
 
         if (row) {
@@ -360,17 +360,17 @@ export class SqlStore {
     }
 
     // get existing value
-    async getExisting(container: string, key: string) {
+    async getExisting(container: string, id: string) {
         console.log("SqlStore.getExisting()");
         if (!this.db) throw new NoDatabaseException();
 
         const params = new QueryParams(this.db);
-        params.add("key", key);
+        params.add("id", id);
 
         const result = await this.db.getOne(`
             SELECT value, version
             FROM ${this.db.encodeName(container)}
-            WHERE key=${params.name("key")}`,
+            WHERE id=${params.name("id")}`,
             params.prepare()
         );
         // console.log("existing: " + JSON.stringify(result));
@@ -392,16 +392,16 @@ export class SqlStore {
 
         const container = options.container;
 
-        // get the key
-        let key = options.object.key;
+        // get the id
+        let id = options.object.id;
 
-        if (!key) {
-            // if inserting, auto create a key
-            key = uuid();
+        if (!id) {
+            // if inserting, auto create a id
+            id = uuid();
         }
 
-        // and remove from the supplied object because don't want key saved into value
-        delete options.object["key"];
+        // and remove from the supplied object because don't want id saved into value
+        delete options.object["id"];
 
         const update = async (existing: any, retryCount: number) => {
             if (!this.db) throw new NoDatabaseException();
@@ -412,7 +412,7 @@ export class SqlStore {
             const valueAsString = JSON.stringify(options.object);
 
             const params = new QueryParams(this.db);
-            params.add("key", key);
+            params.add("id", id);
             params.add("value", valueAsString);
             params.add("existingVersion", existing.version);
             params.add("newVersion", newVersion);
@@ -422,7 +422,7 @@ export class SqlStore {
                     value=${params.name("value")},
                     version=${params.name("newVersion")}
                 WHERE 
-                    key=${params.name("key")}
+                    id=${params.name("id")}
                     and version=${params.name("existingVersion")}
             `;
             const result = await this.db.exec(sql, this.db.prepareParams(params));
@@ -431,10 +431,10 @@ export class SqlStore {
                 // failed to update, is it because another update happened?
                 const maxRetries = 3;
                 if (++retryCount < maxRetries) {
-                    const existing = await this.getExisting(container, key!);
+                    const existing = await this.getExisting(container, id!);
                     await update(existing, retryCount);
                 } else {
-                    throw `Unable to update ${container}/${key} after ${maxRetries} retries`;
+                    throw `Unable to update ${container}/${id} after ${maxRetries} retries`;
                 }
             }
 
@@ -445,11 +445,11 @@ export class SqlStore {
                 if (changeTracking.track) {
                     await this.db.logChange(
                         container,
-                        key!,
+                        id!,
                         {
                             type: "object-update",
                             container,
-                            key,
+                            id,
                             changes,
                         }
                     );
@@ -464,15 +464,15 @@ export class SqlStore {
             const valueAsString = JSON.stringify(options.object);
 
             const params = new QueryParams(this.db);
-            params.add("key", key);
+            params.add("id", id);
             params.add("value", valueAsString);
             params.add("version", existing ? existing.version : 1);
 
             const sql = `
                 INSERT INTO ${this.db.encodeName(container)}
-                    (key, value, version) 
+                    (id, value, version) 
                 VALUES (
-                    ${params.name("key")}, 
+                    ${params.name("id")}, 
                     ${params.name("value")}, 
                     ${params.name("version")}
                 )`;
@@ -482,12 +482,12 @@ export class SqlStore {
 
             const result = await this.db.exec(sql, params.prepare());
             if (!result.rowCount) {
-                throw "Failed attempt to insert ${container}/${key}";
+                throw "Failed attempt to insert ${container}/${id}";
             }
 
-            options.object.key = key;
+            options.object.id = id;
             if (changeTracking.track) {
-                await this.db.logChange(container, key!, {
+                await this.db.logChange(container, id!, {
                     type: "object-add",
                     container: container,
                     value: options.object,
@@ -495,14 +495,14 @@ export class SqlStore {
             }
         }
 
-        const existing = await this.getExisting(container, key);
+        const existing = await this.getExisting(container, id);
         if (existing) {
             options.object.updated = formatDateTime(new Date());
-            if (options.user) options.object.updated_by = options.user.key;
+            if (options.user) options.object.updated_by = options.user.id;
             await update(existing, 0);
         } else {
             options.object.created = formatDateTime(new Date());
-            if (options.user) options.object.created_by = options.user.key;
+            if (options.user) options.object.created_by = options.user.id;
             await insert();
         }
 
@@ -514,11 +514,11 @@ export class SqlStore {
             const props = this.db.parseSearchWithin(indexes.searchWithin);
 
             const { rebuildIndex } = this.indexUpdater(container, props);
-            await rebuildIndex(key, options.object);
+            await rebuildIndex(id, options.object);
         }
 
-        // put the key back back onto the object
-        options.object.key = key;
+        // put the id back back onto the object
+        options.object.id = id;
 
         //return result;
     }
@@ -526,36 +526,36 @@ export class SqlStore {
     async del(
         options: {
             container: string,
-            key: string,
+            id: string,
         },
         changeTracking: TrackingOptions,
     ) {
         console.log("SqlStore.del()");
         if (!this.db) throw new NoDatabaseException();
 
-        const { container, key } = options;
+        const { container, id } = options;
 
-        const existing = await this.getExisting(container, key);
+        const existing = await this.getExisting(container, id);
         if (existing) {
 
             const params = new QueryParams(this.db);
-            params.add("key", key);
+            params.add("id", id);
             
             await this.db.exec(`
                 DELETE FROM ${this.db.encodeName(container)}
-                WHERE key=${params.name("key")}`, 
+                WHERE id=${params.name("id")}`, 
                 params.prepare(),
             );
 
             if (changeTracking.track) {
-                await this.db.logChange(container, key, {
+                await this.db.logChange(container, id, {
                     type: "object-delete",
                     container,
-                    key,
+                    id,
                 });
             }
         } else {
-            throw `Item ${container}/${key} not found`;
+            throw `Item ${container}/${id} not found`;
         }
 
         return true;
@@ -644,7 +644,7 @@ export class SqlStore {
         const params: any[] = [];
         let paramCounter = 1;
 
-        const returnType = options.returnType ? options.returnType : "keys";
+        const returnType = options.returnType ? options.returnType : "ids";
 
         let qry = options.qry;
 
@@ -722,9 +722,9 @@ export class SqlStore {
         }
 
         let sql = `
-            SELECT t.key${((returnType !== "keys") ? ", t.value" : "")}
+            SELECT t.id${((returnType !== "ids") ? ", t.value" : "")}
             FROM ${this.db.encodeName(options.container)} t
-            INNER JOIN ${this.db.encodeName(this.db.getSearchTableName(options.container))} s ON t.key = s.key
+            INNER JOIN ${this.db.encodeName(this.db.getSearchTableName(options.container))} s ON t.id = s.id
         `;
         if (crit.length > 0) {
             sql += `WHERE ${crit.join("")}`;
@@ -737,8 +737,8 @@ export class SqlStore {
             const map: any = {};
             if (items) {
                 for(let i of items) {
-                    map[i.key] = i;
-                    delete i.key;
+                    map[i.id] = i;
+                    delete i.id;
                 }
             }
             return map;
@@ -748,11 +748,11 @@ export class SqlStore {
             return items;
 
         } else {
-            // keys
+            // ids
             const result: string[] = [];
             if (items) {
                 for(let i of items) {
-                    result.push(i.key);
+                    result.push(i.id);
                 }    
             }
             return result;
@@ -766,7 +766,7 @@ export class SqlStore {
         console.log("SqlStore.getChanges()");
         if (!this.db) throw new NoDatabaseException();
 
-        //let sql = "SELECT id, container, key, change, timestamp FROM changes";
+        //let sql = "SELECT id, container, id, change, timestamp FROM changes";
         let sql = "SELECT change FROM changes";
 
         let paramCounter = 1;
@@ -819,23 +819,23 @@ export class SqlStore {
                 }
             
             } else if (change.type === 'object-update') {
-                if (change.container && change.key && change.changes) {
+                if (change.container && change.id && change.changes) {
                     await this.applyChangesToObject(
                         change.container,
-                        change.key,
+                        change.id,
                         change.changes
                     );
                 }
 
             } else if (change.type === "object-delete") {
                 const container = change.container;
-                const key = change.key;
-                if (container && key) {
+                const id = change.id;
+                if (container && id) {
                     await this.set(
                         {
                             container,
                             object: {
-                                key,
+                                id,
                             },
                         },
                         {
@@ -857,13 +857,13 @@ export class SqlStore {
 
     }
 
-    async applyChangesToObject(container: string, key: string, changes: Change[]) {
+    async applyChangesToObject(container: string, id: string, changes: Change[]) {
         console.log("SqlStore.applyChangesToObject()");
 
-        //console.log(`Applying changes to ${container}/${key}`);
+        //console.log(`Applying changes to ${container}/${id}`);
 
         // get existing value 
-        const json = await this.get({ container, key });
+        const json = await this.get({ container, id });
         if (!json) {
             // object no longer exists
             // TODO: how report this error?
@@ -924,7 +924,7 @@ export class SqlStore {
                 if (a) {
                     for(let i=0;i<a.length;i++) {
                         const elem = a[i];
-                        if (elem.key === c.key) {
+                        if (elem.id === c.id) {
                             a[i] = c.value;
                             break;
                         }
@@ -938,7 +938,7 @@ export class SqlStore {
                 if (a) {
                     for(let i=0;i<a.length;i++) {
                         const elem = a[i];
-                        if (elem.key === c.key) {
+                        if (elem.id === c.id) {
                             a.splice(i, 1);
                             break;
                         }
@@ -953,11 +953,11 @@ export class SqlStore {
                 if (items && c.value && c.value.length > 0) {
                     const map = {} as any;
                     for(let item of items) {
-                        map[item.key] = item;
+                        map[item.id] = item;
                     }
                     const sorted = [];
-                    for(let key of c.value) {
-                        sorted.push(map[key]);
+                    for(let id of c.value) {
+                        sorted.push(map[id]);
                     }
 
                 } else {
@@ -1012,8 +1012,8 @@ export class SqlStore {
 
         }
 
-        // make sure the key is part of the object
-        object.key = key;
+        // make sure the id is part of the object
+        object.id = id;
 
         // now that all change are applied attempt to update the object with new value
         await this.set(

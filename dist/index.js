@@ -20,3 +20,6 @@ __exportStar(require("./postgres/PostgresStoreFactory"), exports);
 __exportStar(require("./sqlite/SqliteDB"), exports);
 __exportStar(require("./sqlite/SqliteStore"), exports);
 __exportStar(require("./sqlite/SqliteStoreFactory"), exports);
+__exportStar(require("./mssql/MSSQLDB"), exports);
+__exportStar(require("./mssql/MSSQLStore"), exports);
+__exportStar(require("./mssql/MSSQLStoreFactory"), exports);

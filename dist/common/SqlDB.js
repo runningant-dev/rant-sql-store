@@ -7,6 +7,13 @@ class NoDatabaseException {
 }
 exports.NoDatabaseException = NoDatabaseException;
 class SqlDB {
+    options = {
+        dataTypes: {
+            small: "TEXT",
+            large: "TEXT",
+            autoInc: "bigserial",
+        }
+    };
     async connect() {
     }
     async close() {
@@ -37,12 +44,41 @@ class SqlDB {
         return undefined;
     }
     async establishBaseRequirements() {
+        // could be executed in single query, but sqlite doesn't appreciate that 
+        await this.exec(`
+            CREATE TABLE ${this.encodeName("schema")} (
+                container ${this.options.dataTypes.small} NOT NULL, 
+                indexes ${this.options.dataTypes.large}, 
+                sensitive ${this.options.dataTypes.large}, 
+                updated ${this.options.dataTypes.small});
+        `);
+        await this.exec(`
+            CREATE UNIQUE INDEX idx_schema_container ON ${this.encodeName("schema")} (container);
+        `);
+        await this.exec(`            
+            CREATE TABLE changes (
+                change_id ${this.options.dataTypes.autoInc} primary key, 
+                container ${this.options.dataTypes.small} NOT NULL, 
+                id ${this.options.dataTypes.small}, 
+                change ${this.options.dataTypes.large} NOT NULL, 
+                timestamp ${this.options.dataTypes.small}
+            ); 
+        `);
+    }
+    sanitizeName(name) {
+        return name.replace(/([^a-z0-9_]+)/gi, "").toLowerCase();
     }
     async createContainer(options) {
-        const name = options.name.toLowerCase();
-        await this.exec(`CREATE TABLE "${name}" (key TEXT NOT NULL PRIMARY KEY, value TEXT, meta TEXT, version INT);`);
-        await this.exec(`CREATE UNIQUE INDEX idx_${name}_key ON "${name}" (key);`);
-        await this.exec(`INSERT INTO schema (container) VALUES ('${name}');`);
+        const name = this.sanitizeName(options.name);
+        await this.exec(`
+            CREATE TABLE ${this.encodeName(name)} (
+                [id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY, 
+                value ${this.options.dataTypes.large}, 
+                meta ${this.options.dataTypes.large}, 
+                version INT
+            );`);
+        await this.exec(`CREATE UNIQUE INDEX idx_${name}_id ON ${this.encodeName(name)} ([id]);`);
+        await this.exec(`INSERT INTO ${this.encodeName("schema")} (container) VALUES ('${name}');`);
     }
     getSearchTableName(container) {
         return container + "_search";
@@ -65,27 +101,28 @@ class SqlDB {
         }
         return props;
     }
-    async logChange(container, key, change) {
+    async logChange(container, id, change) {
         const params = new QueryParams_1.QueryParams(this);
         params.add("container", container);
-        params.add("key", key);
+        params.add("id", id);
         params.add("change", JSON.stringify(change));
         params.add("timestamp", (0, rant_utils_1.formatDateTime)(new Date()));
         const sql = `
             INSERT INTO changes (
-                container, key, change, timestamp
+                container, id, change, timestamp
             )
             VALUES (
                 ${params.name("container")},
-                ${params.name("key")},
+                ${params.name("id")},
                 ${params.name("change")},
                 ${params.name("timestamp")}
             )
         `;
         // console.log(sql);
-        const result = this.exec(sql, params.prepare());
+        const result = await this.exec(sql, params.prepare());
     }
-    async createSearchTable(name) {
+    async createSearchTable(searchTableName) {
+        this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} ([id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
     }
     async getUserTables() {
         return undefined;

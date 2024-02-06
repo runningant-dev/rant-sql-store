@@ -20,9 +20,9 @@ export declare class SqlStore {
     private indexUpdater;
     get(options: {
         container: string;
-        key: string;
+        id: string;
     }): Promise<any>;
-    getExisting(container: string, key: string): Promise<any>;
+    getExisting(container: string, id: string): Promise<any>;
     set(options: {
         container: string;
         object: ObjectDef;
@@ -30,7 +30,7 @@ export declare class SqlStore {
     }, changeTracking: TrackingOptions): Promise<void>;
     del(options: {
         container: string;
-        key: string;
+        id: string;
     }, changeTracking: TrackingOptions): Promise<boolean>;
     getIndexes(container: string): Promise<any>;
     getSchema(options: {
@@ -50,5 +50,5 @@ export declare class SqlStore {
     merge(options: {
         changes: Change[];
     }): Promise<void>;
-    applyChangesToObject(container: string, key: string, changes: Change[]): Promise<void>;
+    applyChangesToObject(container: string, id: string, changes: Change[]): Promise<void>;
 }

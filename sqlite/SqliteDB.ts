@@ -67,18 +67,6 @@ export class SqliteDB extends SqlDB {
         return (exists !== undefined);
     }
 
-    async establishBaseRequirements() {
-        await this.exec('CREATE TABLE schema (container TEXT NOT NULL, indexes TEXT, sensitive TEXT, updated TEXT);');
-        await this.exec('CREATE UNIQUE INDEX idx_schema_container ON schema (container);');
-        await this.exec('CREATE TABLE changes (id integer primary key autoincrement, container TEXT NOT NULL, key TEXT, change TEXT NOT NULL, timestamp TEXT);');
-    }
-
-    async createSearchTable(searchTableName: string) {
-        const sql = `CREATE TABLE ${this.encodeName(searchTableName)} (key TEXT NOT NULL PRIMARY KEY)`;
-        console.log(sql);
-        this.exec(sql);
-    }
-
     async getUserTables() {
         return await this.getAll(`
             SELECT name 
