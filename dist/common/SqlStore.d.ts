@@ -1,4 +1,4 @@
-import { Change, ContainerDef, ObjectDef, SearchOptions, TrackingOptions, UserContext } from "rant-store";
+import { AuthToken, Change, ContainerDef, ObjectDef, SearchOptions, TrackingOptions } from "rant-store";
 import { SqlDB } from "./SqlDB";
 export declare class SqlStore {
     db?: SqlDB;
@@ -18,7 +18,7 @@ export declare class SqlStore {
     setContainer(options: ContainerDef & {
         recreate?: boolean;
         delete?: boolean;
-        user?: UserContext;
+        authToken?: AuthToken;
     }, changeTracking: TrackingOptions): Promise<true | undefined>;
     private indexUpdater;
     get(options: {
@@ -28,7 +28,7 @@ export declare class SqlStore {
     set(options: {
         container: string;
         object: ObjectDef;
-        user?: UserContext;
+        authToken?: AuthToken;
     }, changeTracking: TrackingOptions): Promise<void>;
     del(options: {
         container: string;

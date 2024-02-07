@@ -1,6 +1,7 @@
 import { 
+    AuthToken,
     Change, Comparison, ContainerDef, DataType, Expression, ObjectDef, SearchOptions, TrackingOptions, 
-    UserContext, diff, mapDataType, parseSearchQueryString, pruneSensitiveData
+    diff, mapDataType, parseSearchQueryString, pruneSensitiveData
 } from "rant-store";
 import { DBPropDef, NoDatabaseException, SqlDB } from "./SqlDB";
 import { QueryParams } from "./QueryParams";
@@ -67,7 +68,7 @@ export class SqlStore {
         ContainerDef & {
             recreate?: boolean,
             delete?: boolean,
-            user?: UserContext,
+            authToken?: AuthToken,
         },
         changeTracking: TrackingOptions,
     ) {
@@ -363,7 +364,7 @@ export class SqlStore {
         options: {
             container: string, 
             object: ObjectDef,
-            user?: UserContext,
+            authToken?: AuthToken,
         },
 
         // indicates that diffs should be determined and saved
@@ -480,11 +481,11 @@ export class SqlStore {
         const existing = await this.get({ container, id });
         if (existing) {
             options.object.updated = formatDateTime(new Date());
-            if (options.user) options.object.updated_by = options.user.id;
+            if (options.authToken) options.object.updated_by = options.authToken.id;
             await update(existing, 0);
         } else {
             options.object.created = formatDateTime(new Date());
-            if (options.user) options.object.created_by = options.user.id;
+            if (options.authToken) options.object.created_by = options.authToken.id;
             await insert();
         }
 

@@ -375,14 +375,14 @@ class SqlStore {
         const existing = await this.get({ container, id });
         if (existing) {
             options.object.updated = (0, rant_utils_1.formatDateTime)(new Date());
-            if (options.user)
-                options.object.updated_by = options.user.id;
+            if (options.authToken)
+                options.object.updated_by = options.authToken.id;
             await update(existing, 0);
         }
         else {
             options.object.created = (0, rant_utils_1.formatDateTime)(new Date());
-            if (options.user)
-                options.object.created_by = options.user.id;
+            if (options.authToken)
+                options.object.created_by = options.authToken.id;
             await insert();
         }
         // update indexes
