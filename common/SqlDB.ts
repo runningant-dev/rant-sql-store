@@ -18,7 +18,9 @@ export class SqlDB {
         dataTypes: {
             small: "TEXT",
             large: "TEXT",
+            maxSearchable: "TEXT",
             autoInc: "bigserial",
+            int: "INT",
         }
     }
 
@@ -158,7 +160,7 @@ export class SqlDB {
     }
 
     async createSearchTable(searchTableName: string) {
-        this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} ([id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
+        await this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} ([id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
     }
 
     async getUserTables(): Promise<any[] | undefined> {

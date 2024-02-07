@@ -11,7 +11,9 @@ class SqlDB {
         dataTypes: {
             small: "TEXT",
             large: "TEXT",
+            maxSearchable: "TEXT",
             autoInc: "bigserial",
+            int: "INT",
         }
     };
     async connect() {
@@ -122,7 +124,7 @@ class SqlDB {
         const result = await this.exec(sql, params.prepare());
     }
     async createSearchTable(searchTableName) {
-        this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} ([id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
+        await this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} ([id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
     }
     async getUserTables() {
         return undefined;

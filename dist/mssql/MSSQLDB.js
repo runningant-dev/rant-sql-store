@@ -13,7 +13,9 @@ class MSSQLDB extends SqlDB_1.SqlDB {
         this.options.dataTypes = {
             small: "nvarchar(200)",
             large: "ntext",
+            maxSearchable: "nvarchar(1000)",
             autoInc: "bigint identity(1,1)",
+            int: "int",
         };
         // open the connection
         this.db = new tedious_1.Connection(options);

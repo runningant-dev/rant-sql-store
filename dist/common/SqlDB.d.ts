@@ -12,7 +12,9 @@ export declare class SqlDB {
         dataTypes: {
             small: string;
             large: string;
+            maxSearchable: string;
             autoInc: string;
+            int: string;
         };
     };
     connect(): Promise<void>;

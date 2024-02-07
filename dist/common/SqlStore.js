@@ -25,7 +25,7 @@ class SqlStore {
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const name = options.name.toLowerCase();
-        return this.db.getOne(`SELECT * from schema WHERE container = '${name}'`);
+        return this.db.getOne(`SELECT * from ${this.db.encodeName("schema")} WHERE ${this.db.encodeName("container")} = '${name}'`);
     }
     async deleteContainer(options) {
         console.log("SqlStore.deleteContainer()");
@@ -35,8 +35,8 @@ class SqlStore {
         // console.log(`Attempting to delete ${name}`);
         if (await this.db.tableExists(name)) {
             // console.log(`Removing table '${name}'`)
-            await this.db.exec(`DELETE FROM schema WHERE container = '${name}';`);
-            await this.db.exec(`DELETE FROM changes WHERE container = '${name}';`);
+            await this.db.exec(`DELETE FROM ${this.db.encodeName("schema")} WHERE ${this.db.encodeName("container")} = '${name}';`);
+            await this.db.exec(`DELETE FROM changes WHERE ${this.db.encodeName("container")} = '${name}';`);
             await this.db.exec(`DROP TABLE IF EXISTS ${this.db.encodeName(name)};`);
             // console.log(`Deleted ${name}`);
         }
@@ -49,7 +49,6 @@ class SqlStore {
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const name = options.name.toLowerCase();
-        // console.log(`store.setContainer: ${name}`)
         try {
             if (options.delete) {
                 await this.deleteContainer({ name });
@@ -67,6 +66,17 @@ class SqlStore {
                 await this.setSchema(options, {
                     track: false, // don't track this change because tracked with the setContainer change
                 });
+            }
+            // add any initial objects if supplied
+            if (options.objects) {
+                for (let o of options.objects) {
+                    await this.set({
+                        container: name,
+                        object: o,
+                    }, 
+                    // NOTE: tracking not required because it will get auto performed with the set-container change which is tracked
+                    { track: false });
+                }
             }
         }
         finally {
@@ -101,7 +111,7 @@ class SqlStore {
         }
         // console.log(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
         // console.log(JSON.stringify(params))
-        const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE container=${params.name("name")}`;
+        const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE ${this.db.encodeName("container")}=${params.name("name")}`;
         console.log(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
         const execResult = await this.db.exec(sql, this.db.prepareParams(params));
         console.log("execResult: " + JSON.stringify(execResult));
@@ -134,7 +144,10 @@ class SqlStore {
                 if (ignore) {
                     continue;
                 }
-                const dt = ((0, rant_store_1.mapDataType)(prop.dataType) == 1 /* DataType.number */) ? "INT" : "TEXT";
+                // NOTE: for quick search, indexed strings, need limit
+                const dt = ((0, rant_store_1.mapDataType)(prop.dataType) == 1 /* DataType.number */) ?
+                    this.db.options.dataTypes.int
+                    : this.db.options.dataTypes.maxSearchable;
                 console.log(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
                 await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
                 toPopulate.push(prop);
@@ -194,7 +207,7 @@ class SqlStore {
                 (id, ${attribColumnNames})
                 VALUES (${params.name("id")}, ${attribValueParams})`;
             console.log(sql);
-            console.log(JSON.stringify(params));
+            console.log(JSON.stringify(params.prepare()));
             console.log(JSON.stringify(attribColumnNames));
             await this.db.exec(sql, params.prepare());
         };
@@ -370,7 +383,7 @@ class SqlStore {
                     ${params.name("version")}
                 )`;
             console.log(sql);
-            console.log(JSON.stringify(params));
+            console.log(JSON.stringify(params.prepare()));
             const result = await this.db.exec(sql, params.prepare());
             if (!result.rowCount) {
                 throw "Failed attempt to insert ${container}/${id}";
@@ -442,7 +455,7 @@ class SqlStore {
         params.add("container", container);
         const result = await this.db.getOne(`
             SELECT indexes
-            FROM schema 
+            FROM ${this.db.encodeName("schema")} 
             WHERE container = ${params.name("container")}`, params.prepare());
         return result ? JSON.parse(result.indexes) : undefined;
     }
@@ -452,7 +465,7 @@ class SqlStore {
             throw new SqlDB_1.NoDatabaseException();
         const params = new QueryParams_1.QueryParams(this.db);
         params.add("container", options.name);
-        const item = await this.db.getOne(`SELECT * FROM schema WHERE container = ${params.name("container")}`, params.prepare());
+        const item = await this.db.getOne(`SELECT * FROM ${this.db.encodeName("schema")} WHERE container = ${params.name("container")}`, params.prepare());
         if (!item)
             return undefined;
         return {
@@ -494,8 +507,6 @@ class SqlStore {
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const crit = [];
-        //const vals = {} as any;
-        const params = [];
         let paramCounter = 1;
         const returnType = options.returnType ? options.returnType : "ids";
         let qry = options.qry;
@@ -510,6 +521,7 @@ class SqlStore {
             }
         }
         // console.log("availableIndexes: " + JSON.stringify(availableIndexes));
+        const params = new QueryParams_1.QueryParams(this.db);
         function hasIndex(name) {
             return (availableIndexes[name] !== undefined);
         }
@@ -517,9 +529,9 @@ class SqlStore {
             if (!hasIndex(ex.prop)) {
                 throw `Attempting to query a property '${ex.prop}' in container '${options.container}' that has not been indexed`;
             }
-            const paramName = "$" + paramCounter++;
-            crit.push("s." + ex.prop.replace(".", "_") + " " + ex.comparator + " " + paramName);
-            params.push(ex.value);
+            const paramName = "p" + paramCounter++;
+            params.add(paramName, ex.value);
+            crit.push("s." + ex.prop.replace(".", "_") + " " + ex.comparator + " " + params.name(paramName));
         }
         function parseComparisonArray(items) {
             if (items.length <= 0)
@@ -571,22 +583,32 @@ class SqlStore {
         if (crit.length > 0) {
             sql += `WHERE ${crit.join("")}`;
         }
-        console.log(sql);
-        const items = await this.db.getAll(sql, params);
+        const items = await this.db.getAll(sql, params.prepare());
         if (returnType === "map") {
             // map
             const map = {};
             if (items) {
-                for (let i of items) {
-                    map[i.id] = i;
-                    delete i.id;
+                for (let item of items) {
+                    map[item.id] = JSON.parse(item.value);
                 }
             }
             return map;
         }
         else if (returnType === "array") {
             // array
-            return items;
+            if (items) {
+                const result = [];
+                for (let item of items) {
+                    // expand out the .value to be actual JSON object
+                    const o = JSON.parse(item.value);
+                    o.id = item.id;
+                    result.push(o);
+                }
+                return result;
+            }
+            else {
+                return undefined;
+            }
         }
         else {
             // ids
@@ -605,22 +627,21 @@ class SqlStore {
             throw new SqlDB_1.NoDatabaseException();
         //let sql = "SELECT id, container, id, change, timestamp FROM changes";
         let sql = "SELECT change FROM changes";
-        let paramCounter = 1;
-        const params = [];
+        const params = new QueryParams_1.QueryParams(this.db);
         const where = [];
         if (options.since) {
-            where.push(`timestamp >= $${paramCounter++}`);
-            params.push(options.since);
+            params.add("since", options.since);
+            where.push(`timestamp >= ${params.name("since")}`);
         }
         if (options.from) {
-            where.push(`id >= $${paramCounter++}`);
-            params.push(options.from);
+            params.add("from_change_id", options.from);
+            where.push(`change_id >= ${params.name("from_change_id")}`);
         }
         if (where.length > 0) {
             sql += " WHERE (" + where.join(" AND ") + ")";
         }
-        sql += " ORDER BY id";
-        const items = await this.db.getAll(sql, params);
+        sql += " ORDER BY change_id";
+        const items = await this.db.getAll(sql, params.prepare());
         const result = [];
         if (items) {
             for (let item of items) {
