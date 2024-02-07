@@ -28,9 +28,8 @@ class SqlStore {
         const row = await this.db.getOne(`SELECT * from ${this.db.encodeName("schema")} WHERE ${this.db.encodeName("container")} = '${name}'`);
         return {
             name,
-            container: row.container,
-            indexes: JSON.parse(row.indexes),
-            sensitive: JSON.parse(row.sensitive),
+            indexes: row ? JSON.parse(row.indexes) : undefined,
+            sensitive: row ? JSON.parse(row.sensitive) : undefined,
         };
     }
     async deleteContainer(options) {
@@ -607,7 +606,7 @@ class SqlStore {
                 availableIndexes[ind.name] = true;
             }
         }
-        // console.log("availableIndexes: " + JSON.stringify(availableIndexes));
+        console.log("availableIndexes: " + JSON.stringify(availableIndexes));
         const params = new QueryParams_1.QueryParams(this.db);
         function hasIndex(name) {
             return (availableIndexes[name] !== undefined);
@@ -655,11 +654,18 @@ class SqlStore {
                 qry = parsed.query;
             }
             console.log("qry obj: " + JSON.stringify(qry));
-            if (Array.isArray(qry)) {
-                parseComparisonArray(qry);
+            try {
+                if (Array.isArray(qry)) {
+                    parseComparisonArray(qry);
+                }
+                else {
+                    parseComparison(qry);
+                }
             }
-            else {
-                parseComparison(qry);
+            catch (e) {
+                return {
+                    error: e,
+                };
             }
         }
         let sql = `
@@ -676,7 +682,7 @@ class SqlStore {
                 return false;
             return (options.roles.indexOf(name) >= 0);
         }
-        const { schema, isCleanRequired, cleaner } = await (0, rant_store_1.sensitiveDataCleaner)(this, hasRole, container);
+        //const { schema, isCleanRequired, cleaner} = await sensitiveDataCleaner(this, hasRole, container);
         if (returnType === "map") {
             // map
             const map = {};

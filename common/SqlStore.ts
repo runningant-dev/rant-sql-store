@@ -34,9 +34,8 @@ export class SqlStore {
 
         return {
             name,
-            container: row.container,
-            indexes: JSON.parse(row.indexes),
-            sensitive: JSON.parse(row.sensitive),
+            indexes: row ? JSON.parse(row.indexes) : undefined,
+            sensitive: row ? JSON.parse(row.sensitive) : undefined,
         };
     }
 
@@ -773,7 +772,7 @@ export class SqlStore {
                 availableIndexes[ind.name] = true;
             }
         }
-        // console.log("availableIndexes: " + JSON.stringify(availableIndexes));
+        console.log("availableIndexes: " + JSON.stringify(availableIndexes));
 
         const params = new QueryParams(this.db);
 
@@ -833,11 +832,17 @@ export class SqlStore {
 
             console.log("qry obj: " + JSON.stringify(qry))
 
-            if (Array.isArray(qry)) {
-                parseComparisonArray(qry);
-            } else {
-                parseComparison(qry as any);
-            }            
+            try {
+                if (Array.isArray(qry)) {
+                    parseComparisonArray(qry);
+                } else {
+                    parseComparison(qry as any);
+                }                
+            } catch (e) {
+                return {
+                    error: e,
+                }
+            }
         }
 
         let sql = `
@@ -851,12 +856,11 @@ export class SqlStore {
 
         const items = await this.db.getAll(sql, params.prepare());
 
-
         function hasRole(name: string) {
             if (!options.roles) return false;
             return (options.roles.indexOf(name) >= 0);
         }
-        const { schema, isCleanRequired, cleaner} = await sensitiveDataCleaner(this, hasRole, container);
+        //const { schema, isCleanRequired, cleaner} = await sensitiveDataCleaner(this, hasRole, container);
 
         if (returnType === "map") {
             // map

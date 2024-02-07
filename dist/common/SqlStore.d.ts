@@ -9,7 +9,6 @@ export declare class SqlStore {
         name: string;
     }): Promise<{
         name: string;
-        container: any;
         indexes: any;
         sensitive: any;
     }>;
