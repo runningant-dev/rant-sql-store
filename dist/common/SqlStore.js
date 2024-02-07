@@ -25,7 +25,13 @@ class SqlStore {
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const name = options.name.toLowerCase();
-        return this.db.getOne(`SELECT * from ${this.db.encodeName("schema")} WHERE ${this.db.encodeName("container")} = '${name}'`);
+        const row = await this.db.getOne(`SELECT * from ${this.db.encodeName("schema")} WHERE ${this.db.encodeName("container")} = '${name}'`);
+        return {
+            name,
+            container: row.container,
+            indexes: JSON.parse(row.indexes),
+            sensitive: JSON.parse(row.sensitive),
+        };
     }
     async deleteContainer(options) {
         console.log("SqlStore.deleteContainer()");
@@ -49,6 +55,7 @@ class SqlStore {
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const name = options.name.toLowerCase();
+        const { indexes, sensitive, } = options;
         try {
             if (options.delete) {
                 await this.deleteContainer({ name });
@@ -62,10 +69,82 @@ class SqlStore {
                 // console.log(`Creating container table '${options.name}'`)
                 await this.db.createContainer({ name });
             }
-            if (options.searchWithin) {
-                await this.setSchema(options, {
-                    track: false, // don't track this change because tracked with the setContainer change
-                });
+            if (indexes || sensitive) {
+                const baseTableName = name;
+                const searchTableName = this.db.getSearchTableName(name);
+                const updates = [];
+                const params = new QueryParams_1.QueryParams(this.db);
+                const pName = params.add("name", name);
+                if (indexes) {
+                    const p = params.add("indexes", JSON.stringify({ indexes, }));
+                    updates.push(`indexes=${this.db.formatParamName(p)}`);
+                }
+                if (sensitive) {
+                    const p = params.add("sensitive", JSON.stringify(sensitive));
+                    updates.push(`sensitive=${this.db.formatParamName(p)}`);
+                }
+                // console.log(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
+                // console.log(JSON.stringify(params))
+                const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE ${this.db.encodeName("container")}=${params.name("name")}`;
+                console.log(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
+                const execResult = await this.db.exec(sql, this.db.prepareParams(params));
+                console.log("execResult: " + JSON.stringify(execResult));
+                // update indexes 
+                if (indexes) {
+                    // does table exist?
+                    let isNewTable = false;
+                    if (!await this.db.searchTableExists(name)) {
+                        await this.db.createSearchTable(searchTableName);
+                        isNewTable = true;
+                    }
+                    // get existing columns on the tbl
+                    const existing = await this.db.getTableColumns(searchTableName);
+                    const props = this.db.parseIndexes(indexes);
+                    const toPopulate = [];
+                    // what columns need to be added?
+                    const namesRequired = ["id"];
+                    for (let prop of props) {
+                        namesRequired.push(prop.name);
+                        // does col already exist?
+                        let ignore = false;
+                        if (existing) {
+                            for (let row of existing) {
+                                if (row.name === prop.name) {
+                                    ignore = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (ignore) {
+                            continue;
+                        }
+                        // NOTE: for quick search, indexed strings, need limit
+                        const dt = ((0, rant_store_1.mapDataType)(prop.dataType) == 1 /* DataType.number */) ?
+                            this.db.options.dataTypes.int
+                            : this.db.options.dataTypes.maxSearchable;
+                        console.log(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
+                        await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
+                        toPopulate.push(prop);
+                    }
+                    // are there any indexes to delete?
+                    if (existing) {
+                        for (let row of existing) {
+                            if (namesRequired.indexOf(row.name) < 0) {
+                                await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} DROP ${this.db.encodeName(row.name)}`);
+                            }
+                        }
+                    }
+                    if (toPopulate.length > 0) {
+                        const { rebuildIndex } = this.indexUpdater(options.name, toPopulate);
+                        const data = await this.db.getAll(`SELECT id, value FROM ${this.db.encodeName(baseTableName)}`);
+                        if (data) {
+                            for (let row of data) {
+                                const value = JSON.parse(row.value);
+                                await rebuildIndex(row.id, value, isNewTable);
+                            }
+                        }
+                    }
+                }
             }
             // add any initial objects if supplied
             if (options.objects) {
@@ -89,96 +168,104 @@ class SqlStore {
         }
         return true;
     }
-    async setSchema(options, changeTracking) {
-        console.log("SqlStore.setSchema()");
-        if (!this.db)
-            throw new SqlDB_1.NoDatabaseException();
-        const { name, searchWithin, sensitive, } = options;
-        if (!searchWithin && !sensitive)
-            return;
-        const baseTableName = name;
-        const searchTableName = this.db.getSearchTableName(name);
-        const updates = [];
-        const params = new QueryParams_1.QueryParams(this.db);
-        const pName = params.add("name", name);
-        if (searchWithin) {
-            const p = params.add("indexes", JSON.stringify({ searchWithin, }));
-            updates.push(`indexes=${this.db.formatParamName(p)}`);
-        }
-        if (sensitive) {
-            const p = params.add("sensitive", JSON.stringify(sensitive));
-            updates.push(`sensitive=${this.db.formatParamName(p)}`);
-        }
-        // console.log(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
-        // console.log(JSON.stringify(params))
-        const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE ${this.db.encodeName("container")}=${params.name("name")}`;
-        console.log(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
-        const execResult = await this.db.exec(sql, this.db.prepareParams(params));
-        console.log("execResult: " + JSON.stringify(execResult));
-        // update indexes 
-        if (searchWithin) {
-            // does table exist?
-            let isNewTable = false;
-            if (!await this.db.searchTableExists(name)) {
-                await this.db.createSearchTable(searchTableName);
-                isNewTable = true;
-            }
-            // get existing columns on the tbl
-            const existing = await this.db.getTableColumns(searchTableName);
-            const props = this.db.parseSearchWithin(searchWithin);
-            const toPopulate = [];
-            // what columns need to be added?
-            const namesRequired = ["id"];
-            for (let prop of props) {
-                namesRequired.push(prop.name);
-                // does col already exist?
-                let ignore = false;
-                if (existing) {
-                    for (let row of existing) {
-                        if (row.name === prop.name) {
-                            ignore = true;
-                            break;
-                        }
-                    }
-                }
-                if (ignore) {
-                    continue;
-                }
-                // NOTE: for quick search, indexed strings, need limit
-                const dt = ((0, rant_store_1.mapDataType)(prop.dataType) == 1 /* DataType.number */) ?
-                    this.db.options.dataTypes.int
-                    : this.db.options.dataTypes.maxSearchable;
-                console.log(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
-                await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
-                toPopulate.push(prop);
-            }
-            // are there any indexes to delete?
-            if (existing) {
-                for (let row of existing) {
-                    if (namesRequired.indexOf(row.name) < 0) {
-                        await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} DROP ${this.db.encodeName(row.name)}`);
-                    }
-                }
-            }
-            if (toPopulate.length > 0) {
-                const { rebuildIndex } = this.indexUpdater(options.name, toPopulate);
-                const data = await this.db.getAll(`SELECT id, value FROM ${this.db.encodeName(baseTableName)}`);
-                if (data) {
-                    for (let row of data) {
-                        const value = JSON.parse(row.value);
-                        await rebuildIndex(row.id, value, isNewTable);
-                    }
-                }
-            }
-        }
-        if (changeTracking.track) {
-            await this.db.logChange(name, "", {
-                type: "container-set-schema",
-                value: options,
-            });
-        }
-        return true;
-    }
+    // async setSchema(
+    //     options: SchemaDef,
+    //     changeTracking: TrackingOptions,
+    // ) {
+    //     console.log("SqlStore.setSchema()");
+    //     if (!this.db) throw new NoDatabaseException();
+    //     const {
+    //         name,
+    //         indexes,
+    //         sensitive,
+    //     } = options;
+    //     if (!indexes && !sensitive) return;
+    //     const baseTableName = name;
+    //     const searchTableName = this.db.getSearchTableName(name);
+    //     const updates = [];
+    //     const params = new QueryParams(this.db);
+    //     const pName = params.add("name", name);
+    //     if (indexes) {
+    //         const p = params.add("indexes", JSON.stringify({ indexes, }));
+    //         updates.push(`indexes=${this.db.formatParamName(p)}`);
+    //     }
+    //     if (sensitive) {
+    //         const p = params.add("sensitive", JSON.stringify(sensitive));
+    //         updates.push(`sensitive=${this.db.formatParamName(p)}`);
+    //     }
+    //     // console.log(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
+    //     // console.log(JSON.stringify(params))
+    //     const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE ${this.db.encodeName("container")}=${params.name("name")}`;
+    //     console.log(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
+    //     const execResult = await this.db.exec(
+    //         sql,
+    //         this.db.prepareParams(params),
+    //     );
+    //     console.log("execResult: " + JSON.stringify(execResult));
+    //     // update indexes 
+    //     if (indexes) {
+    //         // does table exist?
+    //         let isNewTable = false;
+    //         if (!await this.db.searchTableExists(name)) {
+    //             await this.db.createSearchTable(searchTableName);
+    //             isNewTable = true;
+    //         }
+    //         // get existing columns on the tbl
+    //         const existing = await this.db.getTableColumns(searchTableName);
+    //         const props = this.db.parseIndexes(indexes);
+    //         const toPopulate = [];
+    //         // what columns need to be added?
+    //         const namesRequired = ["id"];
+    //         for(let prop of props) {
+    //             namesRequired.push(prop.name);
+    //             // does col already exist?
+    //             let ignore = false;
+    //             if (existing) {
+    //                 for(let row of existing) {
+    //                     if (row.name === prop.name) {
+    //                         ignore = true;
+    //                         break;
+    //                     }
+    //                 }
+    //             }
+    //             if (ignore) {
+    //                 continue;
+    //             }
+    //             // NOTE: for quick search, indexed strings, need limit
+    //             const dt = (mapDataType(prop.dataType) == DataType.number) ? 
+    //                         this.db.options.dataTypes.int 
+    //                         : this.db.options.dataTypes.maxSearchable;
+    //             console.log(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
+    //             await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
+    //             toPopulate.push(prop);
+    //         }
+    //         // are there any indexes to delete?
+    //         if (existing) {
+    //             for(let row of existing) {
+    //                 if (namesRequired.indexOf(row.name) < 0) {
+    //                     await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} DROP ${this.db.encodeName(row.name)}`);
+    //                 }
+    //             }
+    //         }
+    //         if (toPopulate.length > 0) {
+    //             const { rebuildIndex } = this.indexUpdater(options.name, toPopulate);
+    //             const data = await this.db.getAll(`SELECT id, value FROM ${this.db.encodeName(baseTableName)}`);
+    //             if (data) {
+    //                 for(let row of data) {
+    //                     const value = JSON.parse(row.value);
+    //                     await rebuildIndex(row.id, value, isNewTable);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     if (changeTracking.track) {
+    //         await this.db.logChange(name, "", {
+    //             type: "container-set-schema",
+    //             value: options,
+    //         });
+    //     }
+    //     return true;
+    // }
     indexUpdater(container, props) {
         console.log("SqlStore.indexUpdater()");
         if (!this.db)
@@ -413,8 +500,8 @@ class SqlStore {
         // update indexes
         const indexes = await this.getIndexes(container);
         if (indexes) {
-            console.log("indexes.searchWithin: " + JSON.stringify(indexes.searchWithin));
-            const props = this.db.parseSearchWithin(indexes.searchWithin);
+            console.log("indexes.indexes: " + JSON.stringify(indexes.indexes));
+            const props = this.db.parseIndexes(indexes.indexes);
             const { rebuildIndex } = this.indexUpdater(container, props);
             await rebuildIndex(id, options.object);
         }
@@ -459,21 +546,21 @@ class SqlStore {
             WHERE container = ${params.name("container")}`, params.prepare());
         return result ? JSON.parse(result.indexes) : undefined;
     }
-    async getSchema(options) {
-        console.log("SqlStore.getSchema()");
-        if (!this.db)
-            throw new SqlDB_1.NoDatabaseException();
-        const params = new QueryParams_1.QueryParams(this.db);
-        params.add("container", options.name);
-        const item = await this.db.getOne(`SELECT * FROM ${this.db.encodeName("schema")} WHERE container = ${params.name("container")}`, params.prepare());
-        if (!item)
-            return undefined;
-        return {
-            name: options.name,
-            indexes: JSON.parse(item.indexes),
-            sensitive: JSON.parse(item.sensitive),
-        };
-    }
+    // async getSchema(options: {
+    //     name: string,
+    // }) {
+    //     console.log("SqlStore.getSchema()");
+    //     if (!this.db) throw new NoDatabaseException();
+    //     const params = new QueryParams(this.db);
+    //     params.add("container", options.name);
+    //     const item = await this.db.getOne(`SELECT * FROM ${this.db.encodeName("schema")} WHERE container = ${params.name("container")}`, params.prepare());
+    //     if (!item) return undefined;
+    //     return {
+    //         name: options.name,
+    //         indexes: JSON.parse(item.indexes),
+    //         sensitive: JSON.parse(item.sensitive),
+    //     }
+    // }
     async reset(options) {
         console.log("SqlStore.reset()");
         if (!this.db)
@@ -512,12 +599,12 @@ class SqlStore {
         let qry = options.qry;
         // get the props that have been indexed 
         // ... as we parse the query need to confirm that only those are being referenced
-        const indexes = await this.getIndexes(options.container);
+        const container = await this.getContainer({ name: options.container });
         const availableIndexes = {};
-        if (indexes && indexes.searchWithin) {
-            for (let i = 0; i < indexes.searchWithin.length; i++) {
-                const sw = indexes.searchWithin[i];
-                availableIndexes[sw.name] = true;
+        if (container && container.indexes) {
+            for (let i = 0; i < container.indexes.length; i++) {
+                const ind = container.indexes[i];
+                availableIndexes[ind.name] = true;
             }
         }
         // console.log("availableIndexes: " + JSON.stringify(availableIndexes));
@@ -584,6 +671,12 @@ class SqlStore {
             sql += `WHERE ${crit.join("")}`;
         }
         const items = await this.db.getAll(sql, params.prepare());
+        function hasRole(name) {
+            if (!options.roles)
+                return false;
+            return (options.roles.indexOf(name) >= 0);
+        }
+        const { schema, isCleanRequired, cleaner } = await (0, rant_store_1.sensitiveDataCleaner)(this, hasRole, container);
         if (returnType === "map") {
             // map
             const map = {};
@@ -686,9 +779,8 @@ class SqlStore {
             }
             else if (change.type === 'container-set') {
                 await this.setContainer(change.value, { track: false });
-            }
-            else if (change.type === "container-set-schema") {
-                await this.setSchema(change.value, { track: false });
+                // } else if (change.type === "container-set-schema") {
+                //     await this.setSchema(change.value, { track: false });
             }
         }
     }

@@ -34,7 +34,7 @@ export declare class SqlDB {
     }): Promise<void>;
     getSearchTableName(container: string): string;
     searchTableExists(container: string): Promise<boolean>;
-    parseSearchWithin(searchWithin: PropDef[] | undefined): DBPropDef[];
+    parseIndexes(indexes: PropDef[] | undefined): DBPropDef[];
     logChange(container: string, id: string, change: Change): Promise<void>;
     createSearchTable(searchTableName: string): Promise<void>;
     getUserTables(): Promise<any[] | undefined>;

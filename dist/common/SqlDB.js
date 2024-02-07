@@ -89,12 +89,12 @@ class SqlDB {
         const searchTableName = this.getSearchTableName(container);
         return this.tableExists(searchTableName);
     }
-    parseSearchWithin(searchWithin) {
-        if (!searchWithin)
+    parseIndexes(indexes) {
+        if (!indexes)
             return [];
         const props = [];
-        for (let i = 0; i < searchWithin.length; i++) {
-            const sw = searchWithin[i];
+        for (let i = 0; i < indexes.length; i++) {
+            const sw = indexes[i];
             props.push({
                 name: sw.name.replace(".", "_"),
                 parts: sw.name.split("."),

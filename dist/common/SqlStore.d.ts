@@ -1,4 +1,4 @@
-import { Change, ContainerDef, ObjectDef, SchemaDef, SearchOptions, TrackingOptions, UserContext } from "rant-store";
+import { Change, ContainerDef, ObjectDef, SearchOptions, TrackingOptions, UserContext } from "rant-store";
 import { SqlDB } from "./SqlDB";
 export declare class SqlStore {
     db?: SqlDB;
@@ -7,7 +7,12 @@ export declare class SqlStore {
     close(): Promise<void>;
     getContainer(options: {
         name: string;
-    }): Promise<any>;
+    }): Promise<{
+        name: string;
+        container: any;
+        indexes: any;
+        sensitive: any;
+    }>;
     deleteContainer(options: {
         name: string;
     }): Promise<void>;
@@ -16,7 +21,6 @@ export declare class SqlStore {
         delete?: boolean;
         user?: UserContext;
     }, changeTracking: TrackingOptions): Promise<true | undefined>;
-    setSchema(options: SchemaDef, changeTracking: TrackingOptions): Promise<true | undefined>;
     private indexUpdater;
     get(options: {
         container: string;
@@ -33,13 +37,6 @@ export declare class SqlStore {
         id: string;
     }, changeTracking: TrackingOptions): Promise<boolean>;
     getIndexes(container: string): Promise<any>;
-    getSchema(options: {
-        name: string;
-    }): Promise<{
-        name: string;
-        indexes: any;
-        sensitive: any;
-    } | undefined>;
     reset(options: {}): Promise<void>;
     searchAll(queries: SearchOptions[]): Promise<any[]>;
     search(options: SearchOptions): Promise<any>;

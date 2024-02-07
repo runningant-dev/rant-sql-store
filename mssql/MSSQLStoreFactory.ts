@@ -8,7 +8,7 @@ export function MSSQLStoreFactory() {
             await store.connect();
             return store;        
         },
-        destroy: async function(store: Store) {
+        destroy: async function(store: MSSQLStore) {
             await store.close();
         },
     }

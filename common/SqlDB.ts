@@ -118,12 +118,12 @@ export class SqlDB {
         return this.tableExists(searchTableName);
     }
 
-    parseSearchWithin(searchWithin: PropDef[] | undefined) {
-        if (!searchWithin) return [];
+    parseIndexes(indexes: PropDef[] | undefined) {
+        if (!indexes) return [];
 
         const props: DBPropDef[] = [];
-        for(let i=0;i<searchWithin.length;i++) {
-            const sw = searchWithin[i];
+        for(let i=0;i<indexes.length;i++) {
+            const sw = indexes[i];
 
             props.push({
                 name: sw.name.replace(".", "_"),
