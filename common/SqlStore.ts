@@ -789,8 +789,8 @@ export class SqlStore {
     }
 
     async getChanges(options: {
-        since?: Date,
         from?: number, // id
+        since?: string,
     }) {
         console.log("SqlStore.getChanges()");
         if (!this.db) throw new NoDatabaseException();

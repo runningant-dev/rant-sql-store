@@ -44,8 +44,8 @@ export declare class SqlStore {
     searchAll(queries: SearchOptions[]): Promise<any[]>;
     search(options: SearchOptions): Promise<any>;
     getChanges(options: {
-        since?: Date;
         from?: number;
+        since?: string;
     }): Promise<any[]>;
     merge(options: {
         changes: Change[];
