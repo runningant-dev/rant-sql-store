@@ -105,7 +105,7 @@ export class SqlStore {
                 const pName = params.add("name", name);
 
                 if (indexes) {
-                    const p = params.add("indexes", JSON.stringify({ indexes, }));
+                    const p = params.add("indexes", JSON.stringify(indexes));
                     updates.push(`indexes=${this.db.formatParamName(p)}`);
                 }
                 if (sensitive) {
