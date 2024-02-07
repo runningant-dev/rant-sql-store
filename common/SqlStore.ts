@@ -626,8 +626,8 @@ export class SqlStore {
         // update indexes
         const indexes = await this.getIndexes(container);
         if (indexes) {
-            console.log("indexes.indexes: "+ JSON.stringify(indexes.indexes))
-            const props = this.db.parseIndexes(indexes.indexes);
+            console.log("indexes: "+ JSON.stringify(indexes))
+            const props = this.db.parseIndexes(indexes);
 
             const { rebuildIndex } = this.indexUpdater(container, props);
             await rebuildIndex(id, options.object);
@@ -693,25 +693,6 @@ export class SqlStore {
 
         return result ? JSON.parse(result.indexes) : undefined;
     }
-
-    // async getSchema(options: {
-    //     name: string,
-    // }) {
-    //     console.log("SqlStore.getSchema()");
-    //     if (!this.db) throw new NoDatabaseException();
-
-    //     const params = new QueryParams(this.db);
-    //     params.add("container", options.name);
-
-    //     const item = await this.db.getOne(`SELECT * FROM ${this.db.encodeName("schema")} WHERE container = ${params.name("container")}`, params.prepare());
-    //     if (!item) return undefined;
-
-    //     return {
-    //         name: options.name,
-    //         indexes: JSON.parse(item.indexes),
-    //         sensitive: JSON.parse(item.sensitive),
-    //     }
-    // }
 
     async reset(options: {
 
