@@ -13,7 +13,7 @@
     "@types/sqlite3": "^3.1.8",
     "dotenv": "^16.3.1",
     "pg": "^8.11.0",
-    "rant-store": "^0.0.11",
+    "rant-store": "^0.0.15",
     "rant-utils": "^0.0.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7-rc.0",
