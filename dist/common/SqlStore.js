@@ -271,25 +271,12 @@ class SqlStore {
             WHERE id like ${params.name("id")}
         `, params.prepare());
         if (row) {
-            return row.value;
+            const o = JSON.parse(row.value);
+            return o;
         }
         else {
             return undefined;
         }
-    }
-    // get existing value
-    async getExisting(container, id) {
-        console.log("SqlStore.getExisting()");
-        if (!this.db)
-            throw new SqlDB_1.NoDatabaseException();
-        const params = new QueryParams_1.QueryParams(this.db);
-        params.add("id", id);
-        const result = await this.db.getOne(`
-            SELECT value, version
-            FROM ${this.db.encodeName(container)}
-            WHERE id=${params.name("id")}`, params.prepare());
-        // console.log("existing: " + JSON.stringify(result));
-        return result;
     }
     async set(options, 
     // indicates that diffs should be determined and saved
@@ -332,7 +319,7 @@ class SqlStore {
                 // failed to update, is it because another update happened?
                 const maxRetries = 3;
                 if (++retryCount < maxRetries) {
-                    const existing = await this.getExisting(container, id);
+                    const existing = await this.get({ container, id });
                     await update(existing, retryCount);
                 }
                 else {
@@ -385,7 +372,7 @@ class SqlStore {
                 });
             }
         };
-        const existing = await this.getExisting(container, id);
+        const existing = await this.get({ container, id });
         if (existing) {
             options.object.updated = (0, rant_utils_1.formatDateTime)(new Date());
             if (options.user)
@@ -415,7 +402,7 @@ class SqlStore {
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const { container, id } = options;
-        const existing = await this.getExisting(container, id);
+        const existing = await this.get({ container, id });
         if (existing) {
             const params = new QueryParams_1.QueryParams(this.db);
             params.add("id", id);
@@ -467,6 +454,7 @@ class SqlStore {
         }
         return this.db.checkForBaseRequirements();
     }
+    // NOTE: search & searchAll will automatically prune sensitive data
     async searchAll(queries) {
         console.log("SqlStore.searchAll()");
         const results = [];
@@ -475,6 +463,7 @@ class SqlStore {
         }
         return Promise.all(results);
     }
+    // NOTE: search & searchAll will automatically prune sensitive data
     async search(options) {
         console.log("SqlStore.search()");
         if (!this.db)

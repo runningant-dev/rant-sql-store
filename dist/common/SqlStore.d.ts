@@ -25,7 +25,6 @@ export declare class SqlStore {
         container: string;
         id: string;
     }): Promise<any>;
-    getExisting(container: string, id: string): Promise<any>;
     set(options: {
         container: string;
         object: ObjectDef;
