@@ -12,14 +12,15 @@
   "dependencies": {
     "@types/sqlite3": "^3.1.8",
     "dotenv": "^16.3.1",
+    "mssql": "^10.0.2",
     "pg": "^8.11.0",
-    "rant-store": "^0.0.16",
-    "rant-utils": "^0.0.1",
+    "rant-store": "^0.0.17",
+    "rant-utils": "^0.0.2",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7-rc.0",
-    "tedious": "^16.6.1"
+    "sqlite3": "^5.1.7-rc.0"
   },
   "devDependencies": {
+    "@types/mssql": "^9.1.5",
     "@types/pg": "^8.10.1",
     "@types/tedious": "^4.0.14"
   }

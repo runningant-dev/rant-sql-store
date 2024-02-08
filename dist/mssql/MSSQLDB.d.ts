@@ -1,9 +1,9 @@
-import { Connection, ConnectionConfig, Request } from "tedious";
+import { config, Request } from "mssql";
 import { SqlDB } from "../common/SqlDB";
 import { QueryParam, QueryParams } from "../common/QueryParams";
 export declare class MSSQLDB extends SqlDB {
-    db: Connection;
-    constructor(options: ConnectionConfig);
+    config: config;
+    constructor(options: config);
     connect(): Promise<void>;
     close(): Promise<void>;
     exec(sql: string, params?: any[]): Promise<{

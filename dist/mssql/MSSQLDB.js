@@ -1,13 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MSSQLDB = void 0;
-const tedious_1 = require("tedious");
-// http://tediousjs.github.io/tedious/api-request.html
+const mssql_1 = require("mssql");
 const SqlDB_1 = require("../common/SqlDB");
 const QueryParams_1 = require("../common/QueryParams");
 const rant_utils_1 = require("rant-utils");
 class MSSQLDB extends SqlDB_1.SqlDB {
-    db;
+    config;
     constructor(options) {
         super();
         this.options.dataTypes = {
@@ -17,40 +16,28 @@ class MSSQLDB extends SqlDB_1.SqlDB {
             autoInc: "bigint identity(1,1)",
             int: "int",
         };
-        // open the connection
-        this.db = new tedious_1.Connection(options);
+        this.config = options;
     }
     async connect() {
-        const result = await new Promise((resolve, reject) => {
-            this.db.on("connect", err => {
-                if (err) {
-                    reject(err);
-                }
-                else {
-                    resolve(this.db);
-                }
-            });
-            this.db.connect();
-        });
+        await (0, mssql_1.connect)(this.config);
     }
     async close() {
-        return this.db.close();
     }
     async exec(sql, params) {
         console.log(`exec: ${sql}`);
         return await new Promise((resolve, reject) => {
-            let req = new tedious_1.Request(sql, (err, rowCount) => {
+            const req = new mssql_1.Request();
+            this.setParams(req, params);
+            req.query(sql, (err, recordset) => {
                 if (err) {
                     reject(err);
                 }
                 else {
                     resolve({
-                        rowCount,
+                        rowCount: (recordset && recordset.rowsAffected && recordset.rowsAffected.length > 0) ? recordset.rowsAffected[0] : 0,
                     });
                 }
             });
-            this.setParams(req, params);
-            this.db.execSql(req);
         });
     }
     ;
@@ -61,19 +48,19 @@ class MSSQLDB extends SqlDB_1.SqlDB {
         for (var m in params) {
             const val = params[m];
             if ((0, rant_utils_1.isString)(val)) {
-                req.addParameter(m, tedious_1.TYPES.NVarChar, val);
+                req.input(m, mssql_1.TYPES.NVarChar, val);
             }
             else if (Number.isInteger(val)) {
-                req.addParameter(m, tedious_1.TYPES.Int, val);
+                req.input(m, mssql_1.TYPES.Int, val);
             }
             else if (val === true) {
-                req.addParameter(m, tedious_1.TYPES.SmallInt, 1);
+                req.input(m, mssql_1.TYPES.SmallInt, 1);
             }
             else if (val === false) {
-                req.addParameter(m, tedious_1.TYPES.SmallInt, 0);
+                req.input(m, mssql_1.TYPES.SmallInt, 0);
             }
             else if (!Number.isNaN(val)) {
-                req.addParameter(m, tedious_1.TYPES.Float, val);
+                req.input(m, mssql_1.TYPES.Float, val);
             }
             else {
                 // ignore any other types for now
@@ -96,23 +83,24 @@ class MSSQLDB extends SqlDB_1.SqlDB {
         console.log(`exec: ${sql}`);
         return await new Promise((resolve, reject) => {
             const rows = [];
-            let req = new tedious_1.Request(sql, (err, rowCount) => {
+            const req = new mssql_1.Request();
+            this.setParams(req, params);
+            req.query(sql, (err, recordset) => {
                 if (err) {
                     reject(err);
                 }
                 else {
-                    resolve(rows);
+                    resolve(recordset ? recordset.recordset : []);
                 }
             });
-            this.setParams(req, params);
-            req.on("row", (cols) => {
-                const row = {};
-                for (let col of cols) {
-                    row[col.metadata.colName] = col.value;
-                }
-                rows.push(row);
-            });
-            this.db.execSql(req);
+            // req.on("row", (cols) => {
+            //     const row = {} as any;
+            //     for(let col of cols) {
+            //         row[col.metadata.colName] = col.value;
+            //     }
+            //     rows.push(row);
+            // });
+            // this.db.execSql(req);
         });
     }
     async tableExists(name) {
