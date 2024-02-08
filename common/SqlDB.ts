@@ -105,7 +105,6 @@ export class SqlDB {
                 meta ${this.options.dataTypes.large}, 
                 version INT
             );`);
-        await this.exec(`CREATE UNIQUE INDEX idx_${name}_id ON ${this.encodeName(name)} ([id]);`);
         await this.exec(`INSERT INTO ${this.encodeName("schema")} (container) VALUES ('${name}');`);
     }
 
