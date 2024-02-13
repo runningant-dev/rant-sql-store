@@ -19,7 +19,7 @@ export declare class SqlStore {
         recreate?: boolean;
         delete?: boolean;
         authToken?: AuthToken;
-    }, changeTracking: TrackingOptions): Promise<true | undefined>;
+    }, changeTracking?: TrackingOptions): Promise<true | undefined>;
     private indexUpdater;
     get(options: {
         container: string;
@@ -29,11 +29,12 @@ export declare class SqlStore {
         container: string;
         object: ObjectDef;
         authToken?: AuthToken;
-    }, changeTracking: TrackingOptions): Promise<void>;
+        merge?: boolean;
+    }, changeTracking?: TrackingOptions): Promise<void>;
     del(options: {
         container: string;
         id: string;
-    }, changeTracking: TrackingOptions): Promise<boolean>;
+    }, changeTracking?: TrackingOptions): Promise<boolean>;
     getIndexes(container: string): Promise<any>;
     reset(options: {}): Promise<void>;
     searchAll(queries: SearchOptions[]): Promise<any[]>;

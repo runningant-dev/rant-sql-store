@@ -5,7 +5,7 @@ import {
 } from "rant-store";
 import { DBPropDef, NoDatabaseException, SqlDB } from "./SqlDB";
 import { QueryParams } from "./QueryParams";
-import { formatDateTime, isString, uuid } from "rant-utils";
+import { formatDateTime, isString, uuid, mergeObject } from "rant-utils";
 
 export class SqlStore {
 
@@ -70,7 +70,7 @@ export class SqlStore {
             delete?: boolean,
             authToken?: AuthToken,
         },
-        changeTracking: TrackingOptions,
+        changeTracking?: TrackingOptions,
     ) {
         console.log("SqlStore.setContainer()");
         if (!this.db) throw new NoDatabaseException();
@@ -210,7 +210,7 @@ export class SqlStore {
             }                
 
         } finally {
-            if (changeTracking.track) {
+            if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(name, "", {
                     type: "container-set",
                     value: options,
@@ -348,12 +348,15 @@ export class SqlStore {
         params.add("id", options.id);
 
         const row = await this.db.getOne(`
-            SELECT value FROM ${this.db.encodeName(options.container)} 
+            SELECT value, version FROM ${this.db.encodeName(options.container)} 
             WHERE id like ${params.name("id")}
         `, params.prepare());
 
         if (row) {
             const o = JSON.parse(row.value);
+            if (o) {
+                o.version = row.version;
+            }
             return o;
         } else {
             return undefined;
@@ -365,10 +368,11 @@ export class SqlStore {
             container: string, 
             object: ObjectDef,
             authToken?: AuthToken,
+            merge?: boolean,
         },
 
         // indicates that diffs should be determined and saved
-        changeTracking: TrackingOptions,
+        changeTracking?: TrackingOptions,
     ) {
         console.log("SqlStore.set()");
         if (!this.db) throw new NoDatabaseException();
@@ -378,9 +382,19 @@ export class SqlStore {
         // get the id
         let id = options.object.id;
 
+        let prevValue;
+
         if (!id) {
             // if inserting, auto create a id
             id = uuid();
+        
+        } else if (options.merge) {
+            // get existing data 
+            prevValue = await this.get({ container: options.container, id, });
+            if (!prevValue) prevValue = {};
+
+            // merge in what has been supplied
+            options.object = mergeObject(options.object, prevValue);
         }
 
         // and remove from the supplied object because don't want id saved into value
@@ -408,13 +422,17 @@ export class SqlStore {
                     id=${params.name("id")}
                     and version=${params.name("existingVersion")}
             `;
-            const result = await this.db.exec(sql, this.db.prepareParams(params));
+            const result = await this.db.exec(sql, params.prepare());
             //console.log(result);
             if (!result.rowCount) {
                 // failed to update, is it because another update happened?
                 const maxRetries = 3;
                 if (++retryCount < maxRetries) {
-                    const existing = await this.get({ container, id });
+                    const existing = await this.get({ container, id, });
+                    
+                    // remove any injected props that will mess with the diff
+                    if (existing && existing.version) delete existing.version;
+                    
                     await update(existing, retryCount);
                 } else {
                     throw `Unable to update ${container}/${id} after ${maxRetries} retries`;
@@ -422,10 +440,9 @@ export class SqlStore {
             }
 
             // check what has changed
-            const objExisting = JSON.parse(existing.value);
-            const changes = diff(objExisting, options.object);
+            const changes = diff(existing, options.object);
             if (changes.length > 0) {
-                if (changeTracking.track) {
+                if (!changeTracking || changeTracking.track) {
                     await this.db.logChange(
                         container,
                         id!,
@@ -438,6 +455,7 @@ export class SqlStore {
                     );
                 }
             }
+
         }
 
         const insert = async () => {
@@ -469,7 +487,7 @@ export class SqlStore {
             }
 
             options.object.id = id;
-            if (changeTracking.track) {
+            if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(container, id!, {
                     type: "object-add",
                     container: container,
@@ -511,7 +529,7 @@ export class SqlStore {
             container: string,
             id: string,
         },
-        changeTracking: TrackingOptions,
+        changeTracking?: TrackingOptions,
     ) {
         console.log("SqlStore.del()");
         if (!this.db) throw new NoDatabaseException();
@@ -530,7 +548,7 @@ export class SqlStore {
                 params.prepare(),
             );
 
-            if (changeTracking.track) {
+            if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(container, id, {
                     type: "object-delete",
                     container,

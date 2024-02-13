@@ -158,7 +158,7 @@ class SqlStore {
             }
         }
         finally {
-            if (changeTracking.track) {
+            if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(name, "", {
                     type: "container-set",
                     value: options,
@@ -267,11 +267,14 @@ class SqlStore {
         const params = new QueryParams_1.QueryParams(this.db);
         params.add("id", options.id);
         const row = await this.db.getOne(`
-            SELECT value FROM ${this.db.encodeName(options.container)} 
+            SELECT value, version FROM ${this.db.encodeName(options.container)} 
             WHERE id like ${params.name("id")}
         `, params.prepare());
         if (row) {
             const o = JSON.parse(row.value);
+            if (o) {
+                o.version = row.version;
+            }
             return o;
         }
         else {
@@ -287,9 +290,18 @@ class SqlStore {
         const container = options.container;
         // get the id
         let id = options.object.id;
+        let prevValue;
         if (!id) {
             // if inserting, auto create a id
             id = (0, rant_utils_1.uuid)();
+        }
+        else if (options.merge) {
+            // get existing data 
+            prevValue = await this.get({ container: options.container, id, });
+            if (!prevValue)
+                prevValue = {};
+            // merge in what has been supplied
+            options.object = (0, rant_utils_1.mergeObject)(options.object, prevValue);
         }
         // and remove from the supplied object because don't want id saved into value
         delete options.object["id"];
@@ -313,13 +325,16 @@ class SqlStore {
                     id=${params.name("id")}
                     and version=${params.name("existingVersion")}
             `;
-            const result = await this.db.exec(sql, this.db.prepareParams(params));
+            const result = await this.db.exec(sql, params.prepare());
             //console.log(result);
             if (!result.rowCount) {
                 // failed to update, is it because another update happened?
                 const maxRetries = 3;
                 if (++retryCount < maxRetries) {
-                    const existing = await this.get({ container, id });
+                    const existing = await this.get({ container, id, });
+                    // remove any injected props that will mess with the diff
+                    if (existing && existing.version)
+                        delete existing.version;
                     await update(existing, retryCount);
                 }
                 else {
@@ -327,10 +342,9 @@ class SqlStore {
                 }
             }
             // check what has changed
-            const objExisting = JSON.parse(existing.value);
-            const changes = (0, rant_store_1.diff)(objExisting, options.object);
+            const changes = (0, rant_store_1.diff)(existing, options.object);
             if (changes.length > 0) {
-                if (changeTracking.track) {
+                if (!changeTracking || changeTracking.track) {
                     await this.db.logChange(container, id, {
                         type: "object-update",
                         container,
@@ -364,7 +378,7 @@ class SqlStore {
                 throw "Failed attempt to insert ${container}/${id}";
             }
             options.object.id = id;
-            if (changeTracking.track) {
+            if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(container, id, {
                     type: "object-add",
                     container: container,
@@ -409,7 +423,7 @@ class SqlStore {
             await this.db.exec(`
                 DELETE FROM ${this.db.encodeName(container)}
                 WHERE id=${params.name("id")}`, params.prepare());
-            if (changeTracking.track) {
+            if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(container, id, {
                     type: "object-delete",
                     container,
