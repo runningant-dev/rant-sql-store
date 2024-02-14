@@ -356,6 +356,7 @@ export class SqlStore {
             const o = JSON.parse(row.value);
             if (o) {
                 o.version = row.version;
+                o.id = options.id;
             }
             return o;
         } else {
@@ -369,6 +370,7 @@ export class SqlStore {
             object: ObjectDef,
             authToken?: AuthToken,
             merge?: boolean,
+            returnObject?: boolean,
         },
 
         // indicates that diffs should be determined and saved
@@ -522,6 +524,10 @@ export class SqlStore {
         options.object.id = id;
 
         //return result;
+
+        if (options.returnObject) {
+            return options.object;
+        }
     }
 
     async del(
