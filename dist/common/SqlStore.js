@@ -274,6 +274,7 @@ class SqlStore {
             const o = JSON.parse(row.value);
             if (o) {
                 o.version = row.version;
+                o.id = options.id;
             }
             return o;
         }
@@ -410,6 +411,9 @@ class SqlStore {
         // put the id back back onto the object
         options.object.id = id;
         //return result;
+        if (options.returnObject) {
+            return options.object;
+        }
     }
     async del(options, changeTracking) {
         console.log("SqlStore.del()");
@@ -420,9 +424,19 @@ class SqlStore {
         if (existing) {
             const params = new QueryParams_1.QueryParams(this.db);
             params.add("id", id);
+            const c = await this.getContainer({ name: container, });
+            if (!c) {
+                throw `Unknown container ${container}`;
+            }
             await this.db.exec(`
                 DELETE FROM ${this.db.encodeName(container)}
                 WHERE id=${params.name("id")}`, params.prepare());
+            // were there any indexes?
+            if (c.indexes && c.indexes.length > 0) {
+                await this.db.exec(`
+                    DELETE FROM ${this.db.encodeName(this.db.getSearchTableName(container))}
+                    WHERE id=${params.name("id")}`, params.prepare());
+            }
             if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(container, id, {
                     type: "object-delete",

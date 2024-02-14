@@ -30,7 +30,8 @@ export declare class SqlStore {
         object: ObjectDef;
         authToken?: AuthToken;
         merge?: boolean;
-    }, changeTracking?: TrackingOptions): Promise<void>;
+        returnObject?: boolean;
+    }, changeTracking?: TrackingOptions): Promise<any>;
     del(options: {
         container: string;
         id: string;

@@ -547,12 +547,26 @@ export class SqlStore {
 
             const params = new QueryParams(this.db);
             params.add("id", id);
-            
+
+            const c = await this.getContainer({ name: container, });
+            if (!c) {
+                throw `Unknown container ${container}`;
+            }
+
             await this.db.exec(`
                 DELETE FROM ${this.db.encodeName(container)}
                 WHERE id=${params.name("id")}`, 
                 params.prepare(),
             );
+
+            // were there any indexes?
+            if (c.indexes && c.indexes.length > 0) {
+                await this.db.exec(`
+                    DELETE FROM ${this.db.encodeName(this.db.getSearchTableName(container))}
+                    WHERE id=${params.name("id")}`, 
+                    params.prepare(),
+                );
+            }
 
             if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(container, id, {
