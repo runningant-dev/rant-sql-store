@@ -302,7 +302,13 @@ class SqlStore {
             if (!prevValue)
                 prevValue = {};
             // merge in what has been supplied
-            options.object = (0, rant_utils_1.mergeObject)(options.object, prevValue);
+            // NOTE: only merge at root level - any incoming data replaces existing prop at root level
+            if (options.object) {
+                for (var m in options.object) {
+                    prevValue[m] = options.object[m];
+                }
+            }
+            options.object = prevValue;
         }
         // and remove from the supplied object because don't want id saved into value
         delete options.object["id"];

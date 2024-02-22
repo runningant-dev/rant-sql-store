@@ -5,7 +5,7 @@ import {
 } from "rant-store";
 import { DBPropDef, NoDatabaseException, SqlDB } from "./SqlDB";
 import { QueryParams } from "./QueryParams";
-import { formatDateTime, isString, uuid, mergeObject } from "rant-utils";
+import { formatDateTime, isString, uuid } from "rant-utils";
 
 export class SqlStore {
 
@@ -396,7 +396,13 @@ export class SqlStore {
             if (!prevValue) prevValue = {};
 
             // merge in what has been supplied
-            options.object = mergeObject(options.object, prevValue);
+			// NOTE: only merge at root level - any incoming data replaces existing prop at root level
+			if (options.object) {
+				for(var m in options.object) {
+					prevValue[m] = options.object[m];
+				}	
+			}
+            options.object = prevValue;
         }
 
         // and remove from the supplied object because don't want id saved into value
