@@ -23,7 +23,7 @@ export declare class SqlStore {
     private indexUpdater;
     get(options: {
         container: string;
-        id: string;
+        ids: string[];
     }): Promise<any>;
     set(options: {
         container: string;

@@ -339,29 +339,75 @@ export class SqlStore {
 
     async get(options: {
         container: string, 
-        id: string,
+        ids: string[],
     }) {
         console.log("SqlStore.get()");
         if (!this.db) throw new NoDatabaseException();
 
-        const params = new QueryParams(this.db);
-        params.add("id", options.id);
+		function validateIDs(ids?: string[]) {
+			if (!ids) return undefined;
+		
+			const items = [];
+		
+			for(let id of ids) {
+				if (!id || !id.length) continue;
+				if (id.length > 50) continue;
+				if (id.indexOf("'") >= 0) continue;
+		
+				items.push(id);
+			}
+		
+			if (items.length <= 0) return undefined;
+			return "'" + items.join("','") + "'";
+		}
 
-        const row = await this.db.getOne(`
-            SELECT value, version FROM ${this.db.encodeName(options.container)} 
-            WHERE id like ${params.name("id")}
-        `, params.prepare());
+		function prepareRow(row: any) {
+			const o = JSON.parse(row.value);
+			if (o) {
+				o.version = row.version;
+				o.id = row.id;
+			}
+			return o;
+		}
+		
+		if (options.ids.length === 1) {
+			const id = options.ids[0];
 
-        if (row) {
-            const o = JSON.parse(row.value);
-            if (o) {
-                o.version = row.version;
-                o.id = options.id;
-            }
-            return o;
-        } else {
-            return undefined;
-        }
+			const params = new QueryParams(this.db);
+			params.add("id", id);
+
+			const row = await this.db.getOne(`
+				SELECT id, value, version FROM ${this.db.encodeName(options.container)} 
+				WHERE id = ${params.name("id")}
+			`, params.prepare());
+
+			if (row) {
+				return prepareRow(row);
+			} else {
+				return undefined;
+			}
+
+		} else {
+			// multiple
+			const preparedIDs = validateIDs(options.ids);
+			const rows = await this.db.getAll(`
+				SELECT id, value, version FROM ${this.db.encodeName(options.container)} 
+				WHERE id in (${preparedIDs})
+			`);
+			if (rows) {
+				if (rows.length <= 0) return [];
+
+				const result = [];
+				for(let r of rows) {
+					result.push(prepareRow(r));
+				}
+				return result;
+
+			} else {
+				return undefined;	
+			}
+		
+		}
     }
 
     async set(
@@ -392,7 +438,7 @@ export class SqlStore {
         
         } else if (options.merge) {
             // get existing data 
-            prevValue = await this.get({ container: options.container, id, });
+            prevValue = await this.get({ container: options.container, ids: [id], });
             if (!prevValue) prevValue = {};
 
             // merge in what has been supplied
@@ -436,7 +482,7 @@ export class SqlStore {
                 // failed to update, is it because another update happened?
                 const maxRetries = 3;
                 if (++retryCount < maxRetries) {
-                    const existing = await this.get({ container, id, });
+                    const existing = await this.get({ container, ids: [id], });
                     
                     // remove any injected props that will mess with the diff
                     if (existing && existing.version) delete existing.version;
@@ -504,7 +550,7 @@ export class SqlStore {
             }
         }
 
-        const existing = await this.get({ container, id });
+        const existing = await this.get({ container, ids: [id] });
         if (existing) {
             options.object.updated = formatDateTime(new Date());
             if (options.authToken) options.object.updated_by = options.authToken.id;
@@ -548,7 +594,7 @@ export class SqlStore {
 
         const { container, id } = options;
 
-        const existing = await this.get({ container, id });
+        const existing = await this.get({ container, ids: [id] });
         if (existing) {
 
             const params = new QueryParams(this.db);
@@ -901,7 +947,7 @@ export class SqlStore {
         //console.log(`Applying changes to ${container}/${id}`);
 
         // get existing value 
-        const json = await this.get({ container, id });
+        const json = await this.get({ container, ids: [id] });
         if (!json) {
             // object no longer exists
             // TODO: how report this error?
