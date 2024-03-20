@@ -784,14 +784,29 @@ export class SqlStore {
             }
         }
 
+		// what is going to be returned?
+		let selectFields;
+		if (returnType === "count") {
+			selectFields = "COUNT(*) as total";
+		} else {
+			selectFields = `t.id${((returnType !== "ids") ? ", t.value" : "")}`;
+		}
+
         let sql = `
-            SELECT t.id${((returnType !== "ids") ? ", t.value" : "")}
+            SELECT ${selectFields}
             FROM ${this.db.encodeName(options.container)} t
             INNER JOIN ${this.db.encodeName(this.db.getSearchTableName(options.container))} s ON t.id = s.id
         `;
         if (crit.length > 0) {
             sql += `WHERE ${crit.join("")}`;
         }
+
+		if (returnType === "count") {
+			const result: any = await this.db.getOne(sql, params.prepare());
+			return {
+				count: result ? result.total : 0,
+			};
+		}
 
         const items = await this.db.getAll(sql, params.prepare());
 
