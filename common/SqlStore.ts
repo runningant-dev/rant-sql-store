@@ -853,7 +853,7 @@ export class SqlStore {
                 }    
                 return result;
             } else {
-                return undefined;
+                return [];
             }
 
         }
