@@ -340,6 +340,10 @@ export class SqlStore {
     async get(options: {
         container: string, 
         ids: string[],
+
+		pruneSensitive?: boolean,
+        roles?: string[],
+
     }) {
         console.log("SqlStore.get()");
         if (!this.db) throw new NoDatabaseException();
@@ -361,12 +365,29 @@ export class SqlStore {
 			return "'" + items.join("','") + "'";
 		}
 
+		let pruner: any;
+
+		function hasRole(name: string) {
+			if (!options.roles) return false;
+            return (options.roles.indexOf(name) >= 0);
+        }
+        
+		if (options.pruneSensitive) {
+			const container = await this.getContainer({ name: options.container });
+			pruner = await pruneSensitiveData(this, container, hasRole);
+		}
+
 		function prepareRow(row: any) {
 			const o = JSON.parse(row.value);
 			if (o) {
 				o.version = row.version;
 				o.id = row.id;
 			}
+
+			if (pruner && pruner.isPruneRequired) {
+				pruner.prune(o);
+			}
+
 			return o;
 		}
 		

@@ -24,6 +24,8 @@ export declare class SqlStore {
     get(options: {
         container: string;
         ids: string[];
+        pruneSensitive?: boolean;
+        roles?: string[];
     }): Promise<any>;
     set(options: {
         container: string;

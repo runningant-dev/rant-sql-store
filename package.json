@@ -14,7 +14,7 @@
     "dotenv": "^16.3.1",
     "mssql": "^10.0.2",
     "pg": "^8.11.0",
-    "rant-store": "^0.0.21",
+    "rant-store": "^0.0.22",
     "rant-utils": "^0.0.4",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7-rc.0"

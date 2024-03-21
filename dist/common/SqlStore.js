@@ -281,11 +281,24 @@ class SqlStore {
                 return undefined;
             return "'" + items.join("','") + "'";
         }
+        let pruner;
+        function hasRole(name) {
+            if (!options.roles)
+                return false;
+            return (options.roles.indexOf(name) >= 0);
+        }
+        if (options.pruneSensitive) {
+            const container = await this.getContainer({ name: options.container });
+            pruner = await (0, rant_store_1.pruneSensitiveData)(this, container, hasRole);
+        }
         function prepareRow(row) {
             const o = JSON.parse(row.value);
             if (o) {
                 o.version = row.version;
                 o.id = row.id;
+            }
+            if (pruner && pruner.isPruneRequired) {
+                pruner.prune(o);
             }
             return o;
         }
