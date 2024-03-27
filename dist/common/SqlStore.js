@@ -643,7 +643,7 @@ class SqlStore {
             selectFields = "COUNT(*) as total";
         }
         else {
-            selectFields = `t.id${((returnType !== "ids") ? ", t.value" : "")}`;
+            selectFields = `t.id${((returnType !== "ids") ? ", t.value, t.version" : "")}`;
         }
         let sql = `
             SELECT ${selectFields}
@@ -685,6 +685,7 @@ class SqlStore {
                     const o = JSON.parse(item.value);
                     if (isPruneRequired)
                         prune(o);
+                    o.version = item.version;
                     map[item.id] = o;
                 }
             }
@@ -699,6 +700,7 @@ class SqlStore {
                     const o = JSON.parse(item.value);
                     if (isPruneRequired)
                         prune(o);
+                    o.version = item.version;
                     o.id = item.id;
                     result.push(o);
                 }

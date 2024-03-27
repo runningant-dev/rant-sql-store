@@ -815,7 +815,7 @@ export class SqlStore {
 		if (returnType === "count") {
 			selectFields = "COUNT(*) as total";
 		} else {
-			selectFields = `t.id${((returnType !== "ids") ? ", t.value" : "")}`;
+			selectFields = `t.id${((returnType !== "ids") ? ", t.value, t.version" : "")}`;
 		}
 
         let sql = `
@@ -843,7 +843,7 @@ export class SqlStore {
             if (items) {
                 for(let i of items) {
                     result.push(i.id);
-                }    
+                }
             }
             return result;
         }
@@ -861,6 +861,7 @@ export class SqlStore {
                 for(let item of items) {
                     const o = JSON.parse(item.value);
                     if (isPruneRequired) prune(o);
+					o.version = item.version;
                     map[item.id] = o;
                 }
             }
@@ -874,6 +875,7 @@ export class SqlStore {
                     // expand out the .value to be actual JSON object
                     const o = JSON.parse(item.value);
                     if (isPruneRequired) prune(o);
+					o.version = item.version;
                     o.id = item.id;
                     result.push(o);
                 }    
