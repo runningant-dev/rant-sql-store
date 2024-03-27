@@ -728,7 +728,9 @@ export class SqlStore {
         // get the props that have been indexed 
         // ... as we parse the query need to confirm that only those are being referenced
         const container = await this.getContainer({ name: options.container });
-        const availableIndexes = {} as any;
+        const availableIndexes = {
+			"id": true, // always can search by id 
+		} as any;
         if (container && container.indexes) {
             for(let i=0;i<container.indexes.length;i++) {
                 const ind = container.indexes[i];
