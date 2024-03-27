@@ -74,7 +74,7 @@ class SqlDB {
         const name = this.sanitizeName(options.name);
         await this.exec(`
             CREATE TABLE ${this.encodeName(name)} (
-                [id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY, 
+                ${this.encodeName("id")} ${this.options.dataTypes.small} NOT NULL PRIMARY KEY, 
                 value ${this.options.dataTypes.large}, 
                 meta ${this.options.dataTypes.large}, 
                 version INT
@@ -123,7 +123,7 @@ class SqlDB {
         const result = await this.exec(sql, params.prepare());
     }
     async createSearchTable(searchTableName) {
-        await this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} ([id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
+        await this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} (${this.encodeName("id")} ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
     }
     async getUserTables() {
         return undefined;
@@ -136,6 +136,23 @@ class SqlDB {
     }
     encodeName(name) {
         return name;
+    }
+    getComparator(comparator) {
+        if (comparator = "==") {
+            return "=";
+        }
+        else if (comparator = "!=") {
+            return " <> ";
+        }
+        else if (comparator = "&&") {
+            return " AND ";
+        }
+        else if (comparator = "||") {
+            return " OR ";
+        }
+        else {
+            return comparator;
+        }
     }
 }
 exports.SqlDB = SqlDB;

@@ -1,8 +1,8 @@
-import { Client } from "pg";
 import { SqlDB } from "../common/SqlDB";
 import { QueryParam, QueryParams } from "../common/QueryParams";
+import { Pool } from "pg";
 export declare class PostgresDB extends SqlDB {
-    db: Client;
+    db: Pool;
     constructor(options: any);
     connect(): Promise<void>;
     close(): Promise<void>;

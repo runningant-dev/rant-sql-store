@@ -135,7 +135,7 @@ class SqlStore {
                     }
                     if (toPopulate.length > 0) {
                         const { rebuildIndex } = this.indexUpdater(options.name, toPopulate);
-                        const data = await this.db.getAll(`SELECT id, value FROM ${this.db.encodeName(baseTableName)}`);
+                        const data = await this.db.getAll(`SELECT ${this.db.encodeName("id")}, ${this.db.encodeName("value")} FROM ${this.db.encodeName(baseTableName)}`);
                         if (data) {
                             for (let row of data) {
                                 const value = JSON.parse(row.value);
@@ -178,12 +178,12 @@ class SqlStore {
         }
         params.add("id");
         let attribColumnNames = props.map((def, i) => {
-            return def.name;
+            return this.db?.encodeName(def.name);
         }).join(",");
         console.log("attribColumnNames: " + JSON.stringify(attribColumnNames));
         let attribValueParams = props.map((def) => params.name(def.name)).join(",");
         console.log("attribValueParams: " + JSON.stringify(attribValueParams));
-        let attribUpdatePairs = props.map((def, i) => def.name + "=" + params.name(def.name)).join(",");
+        let attribUpdatePairs = props.map((def, i) => this.db?.encodeName(def.name) + "=" + params.name(def.name)).join(",");
         console.log("attribUpdatePairs: " + JSON.stringify(attribUpdatePairs));
         const searchTableName = this.db.getSearchTableName(container);
         const doInsert = async (values, id) => {
@@ -192,7 +192,7 @@ class SqlStore {
             params.setValues(values);
             const sql = `
                 INSERT INTO ${this.db.encodeName(searchTableName)} 
-                (id, ${attribColumnNames})
+                (${this.db.encodeName("id")}, ${attribColumnNames})
                 VALUES (${params.name("id")}, ${attribValueParams})`;
             console.log(sql);
             console.log(JSON.stringify(params.prepare()));
@@ -206,7 +206,7 @@ class SqlStore {
             const sql = `
                 UPDATE ${this.db.encodeName(searchTableName)}
                 SET ${attribUpdatePairs}
-                WHERE id=${params.name("id")}`;
+                WHERE ${this.db.encodeName("id")}=${params.name("id")}`;
             console.log(sql);
             const result = await this.db.exec(sql, params.prepare());
             if (!result.rowCount) {
@@ -307,7 +307,8 @@ class SqlStore {
             const params = new QueryParams_1.QueryParams(this.db);
             params.add("id", id);
             const row = await this.db.getOne(`
-				SELECT id, value, version FROM ${this.db.encodeName(options.container)} 
+				SELECT ${this.db.encodeName("id")}, ${this.db.encodeName("value")}, ${this.db.encodeName("version")}
+				FROM ${this.db.encodeName(options.container)} 
 				WHERE id = ${params.name("id")}
 			`, params.prepare());
             if (row) {
@@ -321,7 +322,8 @@ class SqlStore {
             // multiple
             const preparedIDs = validateIDs(options.ids);
             const rows = await this.db.getAll(`
-				SELECT id, value, version FROM ${this.db.encodeName(options.container)} 
+				SELECT ${this.db.encodeName("id")}, ${this.db.encodeName("value")}, ${this.db.encodeName("version")}
+				FROM ${this.db.encodeName(options.container)} 
 				WHERE id in (${preparedIDs})
 			`);
             if (rows) {
@@ -428,7 +430,7 @@ class SqlStore {
             params.add("version", existing ? existing.version : 1);
             const sql = `
                 INSERT INTO ${this.db.encodeName(container)}
-                    (id, value, version) 
+                    (${this.db.encodeName("id")}, ${this.db.encodeName("value")}, ${this.db.encodeName("version")}) 
                 VALUES (
                     ${params.name("id")}, 
                     ${params.name("value")}, 
@@ -492,12 +494,12 @@ class SqlStore {
             }
             await this.db.exec(`
                 DELETE FROM ${this.db.encodeName(container)}
-                WHERE id=${params.name("id")}`, params.prepare());
+                WHERE ${this.db.encodeName("id")}=${params.name("id")}`, params.prepare());
             // were there any indexes?
             if (c.indexes && c.indexes.length > 0) {
                 await this.db.exec(`
                     DELETE FROM ${this.db.encodeName(this.db.getSearchTableName(container))}
-                    WHERE id=${params.name("id")}`, params.prepare());
+                    WHERE ${this.db.encodeName("id")}=${params.name("id")}`, params.prepare());
             }
             if (!changeTracking || changeTracking.track) {
                 await this.db.logChange(container, id, {
@@ -521,7 +523,7 @@ class SqlStore {
         const result = await this.db.getOne(`
             SELECT indexes
             FROM ${this.db.encodeName("schema")} 
-            WHERE container = ${params.name("container")}`, params.prepare());
+            WHERE ${this.db.encodeName("container")} = ${params.name("container")}`, params.prepare());
         return result ? JSON.parse(result.indexes) : undefined;
     }
     async reset(options) {
@@ -529,7 +531,6 @@ class SqlStore {
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         // get all existing tables
-        console.log("a");
         const names = await this.db.getUserTables();
         console.log("reset: names: " + JSON.stringify(names));
         if (!names)
@@ -558,6 +559,7 @@ class SqlStore {
         console.log("SqlStore.search()");
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
+        const db = this.db;
         const crit = [];
         let paramCounter = 1;
         const returnType = options.returnType ? options.returnType : "ids";
@@ -583,7 +585,8 @@ class SqlStore {
             }
             const paramName = "p" + paramCounter++;
             params.add(paramName, ex.value);
-            crit.push("s." + ex.prop.replace(".", "_") + " " + ex.comparator + " " + params.name(paramName));
+            const comparator = db.getComparator(ex.comparator);
+            crit.push("s." + ex.prop.replace(".", "_") + " " + comparator + " " + params.name(paramName));
         }
         function parseComparisonArray(items) {
             if (items.length <= 0)

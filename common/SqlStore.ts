@@ -185,7 +185,7 @@ export class SqlStore {
                     if (toPopulate.length > 0) {
                         const { rebuildIndex } = this.indexUpdater(options.name, toPopulate);
 
-                        const data = await this.db.getAll(`SELECT id, value FROM ${this.db.encodeName(baseTableName)}`);
+                        const data = await this.db.getAll(`SELECT ${this.db.encodeName("id")}, ${this.db.encodeName("value")} FROM ${this.db.encodeName(baseTableName)}`);
                         if (data) {
                             for(let row of data) {
                                 const value = JSON.parse(row.value);
@@ -234,14 +234,14 @@ export class SqlStore {
         params.add("id");
 
         let attribColumnNames = props.map((def, i) => {
-            return def.name;
+            return this.db?.encodeName(def.name);
         }).join(",");
         console.log("attribColumnNames: " + JSON.stringify(attribColumnNames))
 
         let attribValueParams = props.map((def) => params.name(def.name)).join(",");
         console.log("attribValueParams: " + JSON.stringify(attribValueParams))
 
-        let attribUpdatePairs = props.map((def, i) => def.name + "=" + params.name(def.name)).join(",");
+        let attribUpdatePairs = props.map((def, i) => this.db?.encodeName(def.name) + "=" + params.name(def.name)).join(",");
         console.log("attribUpdatePairs: " + JSON.stringify(attribUpdatePairs))
 
         const searchTableName = this.db!.getSearchTableName(container);
@@ -253,7 +253,7 @@ export class SqlStore {
 
             const sql = `
                 INSERT INTO ${this.db.encodeName(searchTableName)} 
-                (id, ${attribColumnNames})
+                (${this.db.encodeName("id")}, ${attribColumnNames})
                 VALUES (${params.name("id")}, ${attribValueParams})`;
             console.log(sql);
             console.log(JSON.stringify(params.prepare()))
@@ -271,7 +271,7 @@ export class SqlStore {
             const sql = `
                 UPDATE ${this.db.encodeName(searchTableName)}
                 SET ${attribUpdatePairs}
-                WHERE id=${params.name("id")}`;
+                WHERE ${this.db.encodeName("id")}=${params.name("id")}`;
             console.log(sql);
             const result = await this.db.exec(
                 sql,
@@ -398,7 +398,8 @@ export class SqlStore {
 			params.add("id", id);
 
 			const row = await this.db.getOne(`
-				SELECT id, value, version FROM ${this.db.encodeName(options.container)} 
+				SELECT ${this.db.encodeName("id")}, ${this.db.encodeName("value")}, ${this.db.encodeName("version")}
+				FROM ${this.db.encodeName(options.container)} 
 				WHERE id = ${params.name("id")}
 			`, params.prepare());
 
@@ -412,7 +413,8 @@ export class SqlStore {
 			// multiple
 			const preparedIDs = validateIDs(options.ids);
 			const rows = await this.db.getAll(`
-				SELECT id, value, version FROM ${this.db.encodeName(options.container)} 
+				SELECT ${this.db.encodeName("id")}, ${this.db.encodeName("value")}, ${this.db.encodeName("version")}
+				FROM ${this.db.encodeName(options.container)} 
 				WHERE id in (${preparedIDs})
 			`);
 			if (rows) {
@@ -546,7 +548,7 @@ export class SqlStore {
 
             const sql = `
                 INSERT INTO ${this.db.encodeName(container)}
-                    (id, value, version) 
+                    (${this.db.encodeName("id")}, ${this.db.encodeName("value")}, ${this.db.encodeName("version")}) 
                 VALUES (
                     ${params.name("id")}, 
                     ${params.name("value")}, 
@@ -628,7 +630,7 @@ export class SqlStore {
 
             await this.db.exec(`
                 DELETE FROM ${this.db.encodeName(container)}
-                WHERE id=${params.name("id")}`, 
+                WHERE ${this.db.encodeName("id")}=${params.name("id")}`, 
                 params.prepare(),
             );
 
@@ -636,7 +638,7 @@ export class SqlStore {
             if (c.indexes && c.indexes.length > 0) {
                 await this.db.exec(`
                     DELETE FROM ${this.db.encodeName(this.db.getSearchTableName(container))}
-                    WHERE id=${params.name("id")}`, 
+                    WHERE ${this.db.encodeName("id")}=${params.name("id")}`, 
                     params.prepare(),
                 );
             }
@@ -665,7 +667,7 @@ export class SqlStore {
         const result = await this.db.getOne(`
             SELECT indexes
             FROM ${this.db.encodeName("schema")} 
-            WHERE container = ${params.name("container")}`, 
+            WHERE ${this.db.encodeName("container")} = ${params.name("container")}`, 
             params.prepare()
         );
 
@@ -679,7 +681,6 @@ export class SqlStore {
         if (!this.db) throw new NoDatabaseException();
 
         // get all existing tables
-        console.log("a")
         const names = await this.db.getUserTables();
         console.log("reset: names: " + JSON.stringify(names));
         if (!names) return;
@@ -715,6 +716,8 @@ export class SqlStore {
         console.log("SqlStore.search()");
         if (!this.db) throw new NoDatabaseException();
 
+		const db = this.db;
+
         const crit: string[] = [];
         let paramCounter = 1;
 
@@ -748,8 +751,10 @@ export class SqlStore {
             const paramName = "p" + paramCounter++;
             params.add(paramName, ex.value);
 
+			const comparator = db.getComparator(ex.comparator);
+
             crit.push(
-                "s." + ex.prop.replace(".", "_") + " " + ex.comparator + " " + params.name(paramName)
+                "s." + ex.prop.replace(".", "_") + " " + comparator + " " + params.name(paramName)
             );
 
         }

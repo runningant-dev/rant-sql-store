@@ -1,21 +1,29 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PostgresDB = void 0;
-const pg_1 = require("pg");
+// import { Client } from "pg";
 const SqlDB_1 = require("../common/SqlDB");
 const QueryParams_1 = require("../common/QueryParams");
+const pg_1 = require("pg");
 class PostgresDB extends SqlDB_1.SqlDB {
+    // db: Client;
     db;
     constructor(options) {
         super();
         // open the connection
-        this.db = new pg_1.Client(options);
+        // this.db = new Client(options);
+        this.db = new pg_1.Pool({
+            max: 20,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 2000,
+            ...options,
+        });
     }
     async connect() {
-        return this.db.connect();
+        await this.db.connect();
     }
     async close() {
-        return this.db.end();
+        await this.db.end();
     }
     async exec(sql, params) {
         const result = await this.db.query(sql, params);
@@ -33,6 +41,8 @@ class PostgresDB extends SqlDB_1.SqlDB {
         }
     }
     async getAll(sql, params) {
+        console.log("PostgresDB.getAll() -> " + sql);
+        console.dir(params);
         const queryResult = await this.db.query(sql, params);
         if (!queryResult || queryResult.rows.length <= 0)
             return undefined;
@@ -44,6 +54,7 @@ class PostgresDB extends SqlDB_1.SqlDB {
         const sql = `SELECT table_name as name from information_schema.tables WHERE table_name = ${this.formatParamName(pName)}`;
         console.log(sql);
         const exists = await this.getOne(sql, this.prepareParams(q));
+        console.log("tableExists (" + name + ") result: " + (exists ? "Y" : "N"));
         return (exists !== undefined);
     }
     async getUserTables() {
@@ -69,7 +80,13 @@ class PostgresDB extends SqlDB_1.SqlDB {
     prepareParams(q) {
         const result = [];
         for (let p of q.items) {
-            result.push(p.value);
+            let v = p.value;
+            // ensure bools are 1 or 0
+            if (v === true)
+                v = 1;
+            if (v === false)
+                v = 0;
+            result.push(v);
         }
         return result;
     }

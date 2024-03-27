@@ -100,7 +100,7 @@ export class SqlDB {
 
         await this.exec(`
             CREATE TABLE ${this.encodeName(name)} (
-                [id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY, 
+                ${this.encodeName("id")} ${this.options.dataTypes.small} NOT NULL PRIMARY KEY, 
                 value ${this.options.dataTypes.large}, 
                 meta ${this.options.dataTypes.large}, 
                 version INT
@@ -159,7 +159,7 @@ export class SqlDB {
     }
 
     async createSearchTable(searchTableName: string) {
-        await this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} ([id] ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
+        await this.exec(`CREATE TABLE ${this.encodeName(searchTableName)} (${this.encodeName("id")} ${this.options.dataTypes.small} NOT NULL PRIMARY KEY)`);
     }
 
     async getUserTables(): Promise<any[] | undefined> {
@@ -178,5 +178,19 @@ export class SqlDB {
     encodeName(name: string) {
         return name;
     }
+
+	getComparator(comparator: string) {
+		if (comparator = "==") {
+			return "=";
+		} else if (comparator = "!=") {
+			return " <> ";
+		} else if (comparator = "&&") {
+			return " AND ";
+		} else if (comparator = "||") {
+			return " OR ";
+		} else {
+			return comparator;
+		}
+	}
 
 };

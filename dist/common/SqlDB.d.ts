@@ -41,4 +41,5 @@ export declare class SqlDB {
     formatParamName(p: QueryParam): string;
     prepareParams(q: QueryParams): any;
     encodeName(name: string): string;
+    getComparator(comparator: string): string;
 }

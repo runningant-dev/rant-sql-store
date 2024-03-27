@@ -1,24 +1,33 @@
-import { Client } from "pg";
+// import { Client } from "pg";
 import { NoDatabaseException, SqlDB } from "../common/SqlDB";
 import { QueryParam, QueryParams } from "../common/QueryParams";
+import { Pool } from "pg";
 
 export class PostgresDB extends SqlDB {
 
-    db: Client;
+    // db: Client;
+	db: Pool;
 
     constructor(options: any) {
         super();
         
         // open the connection
-        this.db = new Client(options);
+        // this.db = new Client(options);
+
+		this.db = new Pool({
+			max: 20,
+			idleTimeoutMillis: 30000,
+			connectionTimeoutMillis: 2000,
+			...options,
+		});
     }
 
     async connect() {
-        return this.db.connect();
+        await this.db.connect();
     }
 
     async close() {
-        return this.db.end();
+		await this.db.end();
     }
 
     async exec(sql: string, params?: any[]) {
@@ -39,6 +48,10 @@ export class PostgresDB extends SqlDB {
     }
 
     async getAll(sql: string, params?: any[]) {
+		console.log("PostgresDB.getAll() -> " + sql);
+		console.dir(params);
+
+
         const queryResult = await this.db.query(sql, params);
         if (!queryResult || queryResult.rows.length <= 0) return undefined;
         return queryResult.rows;
@@ -55,6 +68,8 @@ export class PostgresDB extends SqlDB {
             sql, 
             this.prepareParams(q)
         );
+
+		console.log("tableExists (" + name + ") result: " + (exists ? "Y" : "N"));
 
         return (exists !== undefined);
     }
@@ -87,7 +102,13 @@ export class PostgresDB extends SqlDB {
     prepareParams(q: QueryParams) {
         const result = [];
         for(let p of q.items) {
-            result.push(p.value);
+			let v = p.value;
+			
+			// ensure bools are 1 or 0
+			if (v === true) v = 1;
+			if (v === false) v = 0;
+
+            result.push(v);
         }
         return result;
     }
@@ -95,5 +116,7 @@ export class PostgresDB extends SqlDB {
     encodeName(name: string) {
         return `"${name}"`;
     }
+
+
 
 }
