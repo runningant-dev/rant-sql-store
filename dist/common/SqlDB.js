@@ -138,16 +138,16 @@ class SqlDB {
         return name;
     }
     getComparator(comparator) {
-        if (comparator = "==") {
+        if (comparator === "==") {
             return "=";
         }
-        else if (comparator = "!=") {
+        else if (comparator === "!=") {
             return " <> ";
         }
-        else if (comparator = "&&") {
+        else if (comparator === "&&") {
             return " AND ";
         }
-        else if (comparator = "||") {
+        else if (comparator === "||") {
             return " OR ";
         }
         else {

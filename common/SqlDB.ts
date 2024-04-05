@@ -180,13 +180,13 @@ export class SqlDB {
     }
 
 	getComparator(comparator: string) {
-		if (comparator = "==") {
+		if (comparator === "==") {
 			return "=";
-		} else if (comparator = "!=") {
+		} else if (comparator === "!=") {
 			return " <> ";
-		} else if (comparator = "&&") {
+		} else if (comparator === "&&") {
 			return " AND ";
-		} else if (comparator = "||") {
+		} else if (comparator === "||") {
 			return " OR ";
 		} else {
 			return comparator;
