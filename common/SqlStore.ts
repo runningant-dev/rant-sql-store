@@ -167,9 +167,18 @@ export class SqlStore {
                                     this.db.options.dataTypes.int 
                                     : this.db.options.dataTypes.maxSearchable;
 
-                        console.log(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
+						const sql = 
+							`ALTER TABLE ${this.db.encodeName(searchTableName)}
+							ADD COLUMN ${this.db.encodeName(prop.name)} ${dt};
+							`;
+                        console.log(sql);
+                        await this.db.exec(
+							sql
+						);
 
-                        await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
+						// create index for searching on this column
+						await this.createIndex(searchTableName, prop.name);
+
                         toPopulate.push(prop);
                     }
 
@@ -1156,6 +1165,23 @@ export class SqlStore {
         );
     }
 
+	async createIndex(searchTableName: string, propName: string) {
+		if (!this.db) throw new NoDatabaseException();
 
+		const sql = `
+			CREATE INDEX 
+			${this.db.encodeName("idx_" + searchTableName + "_" + propName)} 
+			ON ${this.db.encodeName(searchTableName)}
+			(
+				LOWER(${this.db.encodeName(propName)})
+			);
+		`;
+
+		console.log(sql);
+
+		await this.db.exec(
+			sql
+		);
+	}
 
 }

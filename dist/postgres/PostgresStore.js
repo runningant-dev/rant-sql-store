@@ -4,6 +4,7 @@ exports.PostgresStore = void 0;
 const PostgresDB_1 = require("./PostgresDB");
 const SqlStore_1 = require("../common/SqlStore");
 const rant_utils_1 = require("rant-utils");
+const SqlDB_1 = require("../common/SqlDB");
 class PostgresStore extends SqlStore_1.SqlStore {
     constructor() {
         super();
@@ -21,6 +22,20 @@ class PostgresStore extends SqlStore_1.SqlStore {
         await db.connect();
         this.db = db;
         await db.checkForBaseRequirements();
+    }
+    async createIndex(searchTableName, propName) {
+        if (!this.db)
+            throw new SqlDB_1.NoDatabaseException();
+        const sql = `
+			CREATE INDEX 
+			${this.db.encodeName("idx_" + searchTableName + "_" + propName)} 
+			ON ${this.db.encodeName(searchTableName)}
+			USING btree (
+				LOWER(${this.db.encodeName(propName)})
+			);
+		`;
+        console.log(sql);
+        await this.db.exec(sql);
     }
 }
 exports.PostgresStore = PostgresStore;

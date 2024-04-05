@@ -121,8 +121,13 @@ class SqlStore {
                         const dt = ((0, rant_store_1.mapDataType)(prop.dataType) == 1 /* DataType.number */) ?
                             this.db.options.dataTypes.int
                             : this.db.options.dataTypes.maxSearchable;
-                        console.log(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
-                        await this.db.exec(`ALTER TABLE ${this.db.encodeName(searchTableName)} ADD ${this.db.encodeName(prop.name)} ${dt}`);
+                        const sql = `ALTER TABLE ${this.db.encodeName(searchTableName)}
+							ADD COLUMN ${this.db.encodeName(prop.name)} ${dt};
+							`;
+                        console.log(sql);
+                        await this.db.exec(sql);
+                        // create index for searching on this column
+                        await this.createIndex(searchTableName, prop.name);
                         toPopulate.push(prop);
                     }
                     // are there any indexes to delete?
@@ -936,6 +941,20 @@ class SqlStore {
         }, {
             track: false, // don't track this change
         });
+    }
+    async createIndex(searchTableName, propName) {
+        if (!this.db)
+            throw new SqlDB_1.NoDatabaseException();
+        const sql = `
+			CREATE INDEX 
+			${this.db.encodeName("idx_" + searchTableName + "_" + propName)} 
+			ON ${this.db.encodeName(searchTableName)}
+			(
+				LOWER(${this.db.encodeName(propName)})
+			);
+		`;
+        console.log(sql);
+        await this.db.exec(sql);
     }
 }
 exports.SqlStore = SqlStore;

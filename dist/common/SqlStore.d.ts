@@ -50,4 +50,5 @@ export declare class SqlStore {
         changes: Change[];
     }): Promise<void>;
     applyChangesToObject(container: string, id: string, changes: Change[]): Promise<void>;
+    createIndex(searchTableName: string, propName: string): Promise<void>;
 }
