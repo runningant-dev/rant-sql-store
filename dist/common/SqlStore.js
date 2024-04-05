@@ -194,7 +194,7 @@ class SqlStore {
         const doInsert = async (values, id) => {
             if (!this.db)
                 throw new SqlDB_1.NoDatabaseException();
-            params.setValues(values);
+            params.setValuesLowercase(values);
             const sql = `
                 INSERT INTO ${this.db.encodeName(searchTableName)} 
                 (${this.db.encodeName("id")}, ${attribColumnNames})
@@ -207,7 +207,7 @@ class SqlStore {
         const doUpdate = async (values, id) => {
             if (!this.db)
                 throw new SqlDB_1.NoDatabaseException();
-            params.setValues(values);
+            params.setValuesLowercase(values);
             const sql = `
                 UPDATE ${this.db.encodeName(searchTableName)}
                 SET ${attribUpdatePairs}
@@ -591,7 +591,7 @@ class SqlStore {
                 throw `Attempting to query a property '${ex.prop}' in container '${options.container}' that has not been indexed`;
             }
             const paramName = "p" + paramCounter++;
-            params.add(paramName, ex.value);
+            params.addLowercase(paramName, ex.value);
             const comparator = db.getComparator(ex.comparator);
             crit.push("s." + ex.prop.replace(".", "_") + " " + comparator + " " + params.name(paramName));
         }
@@ -950,7 +950,7 @@ class SqlStore {
 			${this.db.encodeName("idx_" + searchTableName + "_" + propName)} 
 			ON ${this.db.encodeName(searchTableName)}
 			(
-				LOWER(${this.db.encodeName(propName)})
+				${this.db.encodeName(propName)}
 			);
 		`;
         console.log(sql);

@@ -34,7 +34,7 @@ export class PostgresStore extends SqlStore {
 			${this.db.encodeName("idx_" + searchTableName + "_" + propName)} 
 			ON ${this.db.encodeName(searchTableName)}
 			USING btree (
-				LOWER(${this.db.encodeName(propName)})
+				${this.db.encodeName(propName)}
 			);
 		`;
 

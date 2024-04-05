@@ -1,3 +1,4 @@
+import { isString } from "rant-utils";
 import { SqlDB } from "./SqlDB";
 
 export interface QueryParam {
@@ -14,6 +15,11 @@ export class QueryParams {
     constructor(db: SqlDB) {
         this.db = db;
     }
+
+	addLowercase(name: string, value?: any) {
+		const v = isString(value) ? value.toLowerCase() : value;
+		this.add(name, v);
+	}
 
     add(name: string, value?: any) {
         const item = {
@@ -40,6 +46,13 @@ export class QueryParams {
     setValues(values: any) {
         for(let item of this.items) {
             item.value = values[item.name];
+        }
+    }
+    setValuesLowercase(values: any) {
+        for(let item of this.items) {
+			let v = values[item.name];
+			if (isString(v)) v = v.toLowerCase();
+            item.value = v;
         }
     }
 

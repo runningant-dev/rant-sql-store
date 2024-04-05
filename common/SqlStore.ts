@@ -258,7 +258,7 @@ export class SqlStore {
         const doInsert = async (values: any, id: string) => {
             if (!this.db) throw new NoDatabaseException();
 
-            params.setValues(values);
+            params.setValuesLowercase(values);
 
             const sql = `
                 INSERT INTO ${this.db.encodeName(searchTableName)} 
@@ -275,7 +275,7 @@ export class SqlStore {
         const doUpdate = async (values: any, id: string) => {
             if (!this.db) throw new NoDatabaseException();
 
-            params.setValues(values);
+            params.setValuesLowercase(values);
 
             const sql = `
                 UPDATE ${this.db.encodeName(searchTableName)}
@@ -760,7 +760,7 @@ export class SqlStore {
             }
 
             const paramName = "p" + paramCounter++;
-            params.add(paramName, ex.value);
+            params.addLowercase(paramName, ex.value);
 
 			const comparator = db.getComparator(ex.comparator);
 
@@ -1173,7 +1173,7 @@ export class SqlStore {
 			${this.db.encodeName("idx_" + searchTableName + "_" + propName)} 
 			ON ${this.db.encodeName(searchTableName)}
 			(
-				LOWER(${this.db.encodeName(propName)})
+				${this.db.encodeName(propName)}
 			);
 		`;
 

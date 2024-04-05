@@ -1,12 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UnknownParamException = exports.QueryParams = void 0;
+const rant_utils_1 = require("rant-utils");
 class QueryParams {
     db;
     items = [];
     indexes = {};
     constructor(db) {
         this.db = db;
+    }
+    addLowercase(name, value) {
+        const v = (0, rant_utils_1.isString)(value) ? value.toLowerCase() : value;
+        this.add(name, v);
     }
     add(name, value) {
         const item = {
@@ -34,6 +39,14 @@ class QueryParams {
     setValues(values) {
         for (let item of this.items) {
             item.value = values[item.name];
+        }
+    }
+    setValuesLowercase(values) {
+        for (let item of this.items) {
+            let v = values[item.name];
+            if ((0, rant_utils_1.isString)(v))
+                v = v.toLowerCase();
+            item.value = v;
         }
     }
     name(name) {

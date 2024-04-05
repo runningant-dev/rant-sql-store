@@ -9,6 +9,7 @@ export declare class QueryParams {
     items: QueryParam[];
     indexes: any;
     constructor(db: SqlDB);
+    addLowercase(name: string, value?: any): void;
     add(name: string, value?: any): {
         index: number;
         name: string;
@@ -17,6 +18,7 @@ export declare class QueryParams {
     get(name: string): QueryParam | undefined;
     setValue(name: string, value: any): void;
     setValues(values: any): void;
+    setValuesLowercase(values: any): void;
     name(name: string): string;
     prepare(): any;
 }
