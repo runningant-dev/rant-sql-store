@@ -24,7 +24,7 @@ export class SqlStore {
         console.log("SqlStore.close()");
         if (!this.db) throw new NoDatabaseException();
 
-        return this.db.close();
+        return await this.db.close();
     }
 
     async getContainer(options: {
@@ -835,8 +835,22 @@ export class SqlStore {
             INNER JOIN ${this.db.encodeName(this.db.getSearchTableName(options.container))} s ON t.id = s.id
         `;
         if (crit.length > 0) {
-            sql += `WHERE ${crit.join("")}`;
+            sql += ` WHERE ${crit.join("")}`;
         }
+		if (options.sort) {
+			const orderSql = [];
+			for(let s of options.sort) {
+				// only allow sort on indexed columns
+				// i.e. need to have pulled the data from json into an addressable col
+				if (!hasIndex(s.name)) {
+					console.log(`WARNING: Attempt to sort by non-indexed column ${s.name} ignored`);
+				}
+				orderSql.push(`t.${this.db.encodeName(s.name)} ${s.direction === "DESC" ? "DESC" : "ASC"}`);
+			}
+			if (orderSql.length > 0) {
+				sql += ` ORDER BY ${orderSql.join(",")}`;
+			}
+		}
 
 		if (returnType === "count") {
 			const result: any = await this.db.getOne(sql, params.prepare());

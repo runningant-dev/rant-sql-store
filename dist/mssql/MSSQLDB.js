@@ -139,7 +139,7 @@ class MSSQLDB extends SqlDB_1.SqlDB {
         return result;
     }
     encodeName(name) {
-        return `[${name}]`;
+        return `[${name.replace("]", "")}]`;
     }
 }
 exports.MSSQLDB = MSSQLDB;

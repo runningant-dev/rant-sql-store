@@ -176,7 +176,7 @@ export class MSSQLDB extends SqlDB {
     }
 
     encodeName(name: string) {
-        return `[${name}]`;
+        return `[${name.replace("]", "")}]`;
     }
 
 }

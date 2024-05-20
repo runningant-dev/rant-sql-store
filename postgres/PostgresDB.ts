@@ -114,7 +114,7 @@ export class PostgresDB extends SqlDB {
     }
 
     encodeName(name: string) {
-        return `"${name}"`;
+        return `"${name.replace('"', '')}"`;
     }
 
 
