@@ -141,5 +141,11 @@ class MSSQLDB extends SqlDB_1.SqlDB {
     encodeName(name) {
         return `[${name.replace("]", "")}]`;
     }
+    getLimitSql(maxRows, startingOffset) {
+        return (`
+			OFFSET ${startingOffset > 0 ? startingOffset : 0} ROWS
+			FETCH NEXT ${maxRows} ROWS ONLY
+		`);
+    }
 }
 exports.MSSQLDB = MSSQLDB;

@@ -193,4 +193,8 @@ export class SqlDB {
 		}
 	}
 
+	getLimitSql(maxRows: number, startingOffset?: number) {
+		
+	}
+
 };

@@ -673,6 +673,11 @@ class SqlStore {
             }
             if (orderSql.length > 0) {
                 sql += ` ORDER BY ${orderSql.join(",")}`;
+                // MSSQL requires ORDER BY for OFFSET/FETCH to work, so just make it a default rule across the board
+                if (options.maxResults > 0) {
+                    const limitSql = this.db.getLimitSql(options.maxResults);
+                    sql += limitSql;
+                }
             }
         }
         if (returnType === "count") {

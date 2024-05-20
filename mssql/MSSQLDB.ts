@@ -179,4 +179,11 @@ export class MSSQLDB extends SqlDB {
         return `[${name.replace("]", "")}]`;
     }
 
+	getLimitSql(maxRows: number, startingOffset?: number) {
+		return (`
+			OFFSET ${startingOffset! > 0 ? startingOffset : 0} ROWS
+			FETCH NEXT ${maxRows} ROWS ONLY
+		`);
+	}
+
 }

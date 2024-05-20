@@ -17,4 +17,5 @@ export declare class PostgresDB extends SqlDB {
     formatParamName(p: QueryParam): string;
     prepareParams(q: QueryParams): any[];
     encodeName(name: string): string;
+    getLimitSql(maxRows: number, startingOffset?: number): string;
 }

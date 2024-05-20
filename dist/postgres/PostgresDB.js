@@ -93,5 +93,8 @@ class PostgresDB extends SqlDB_1.SqlDB {
     encodeName(name) {
         return `"${name.replace('"', '')}"`;
     }
+    getLimitSql(maxRows, startingOffset) {
+        return (` LIMIT ${maxRows} ${startingOffset >= 0 ? (`OFFSET ${startingOffset}`) : ""}`);
+    }
 }
 exports.PostgresDB = PostgresDB;

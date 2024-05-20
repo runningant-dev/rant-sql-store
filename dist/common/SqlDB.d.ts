@@ -42,4 +42,5 @@ export declare class SqlDB {
     prepareParams(q: QueryParams): any;
     encodeName(name: string): string;
     getComparator(comparator: string): string;
+    getLimitSql(maxRows: number, startingOffset?: number): void;
 }

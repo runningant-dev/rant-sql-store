@@ -117,6 +117,10 @@ export class PostgresDB extends SqlDB {
         return `"${name.replace('"', '')}"`;
     }
 
-
+	getLimitSql(maxRows: number, startingOffset?: number) {
+		return (
+			` LIMIT ${maxRows} ${startingOffset! >= 0 ? (`OFFSET ${startingOffset}`) : ""}`
+		);
+	}
 
 }

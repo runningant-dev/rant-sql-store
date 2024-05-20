@@ -18,4 +18,5 @@ export declare class MSSQLDB extends SqlDB {
     formatParamName(p: QueryParam): string;
     prepareParams(q: QueryParams): any;
     encodeName(name: string): string;
+    getLimitSql(maxRows: number, startingOffset?: number): string;
 }

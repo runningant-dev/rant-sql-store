@@ -154,6 +154,8 @@ class SqlDB {
             return comparator;
         }
     }
+    getLimitSql(maxRows, startingOffset) {
+    }
 }
 exports.SqlDB = SqlDB;
 ;
