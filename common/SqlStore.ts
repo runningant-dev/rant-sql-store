@@ -844,8 +844,9 @@ export class SqlStore {
 				// i.e. need to have pulled the data from json into an addressable col
 				if (!hasIndex(s.name)) {
 					console.log(`WARNING: Attempt to sort by non-indexed column ${s.name} ignored`);
+					continue;
 				}
-				orderSql.push(`t.${this.db.encodeName(s.name)} ${s.direction === "DESC" ? "DESC" : "ASC"}`);
+				orderSql.push(`s.${this.db.encodeName(s.name)} ${s.direction === "DESC" ? "DESC" : "ASC"}`);
 			}
 			if (orderSql.length > 0) {
 				sql += ` ORDER BY ${orderSql.join(",")}`;
