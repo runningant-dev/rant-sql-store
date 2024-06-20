@@ -465,6 +465,7 @@ class SqlStore {
         }
         else {
             options.object.created = (0, rant_utils_1.formatDateTime)(new Date());
+            options.object.updated = options.object.created;
             if (options.authToken)
                 options.object.created_by = options.authToken.id;
             await insert();

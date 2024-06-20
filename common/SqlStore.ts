@@ -589,6 +589,7 @@ export class SqlStore {
             await update(existing, 0);
         } else {
             options.object.created = formatDateTime(new Date());
+			options.object.updated = options.object.created;
             if (options.authToken) options.object.created_by = options.authToken.id;
             await insert();
         }
