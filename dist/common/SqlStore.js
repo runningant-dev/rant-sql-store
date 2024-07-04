@@ -375,12 +375,13 @@ class SqlStore {
         }
         // and remove from the supplied object because don't want id saved into value
         delete options.object["id"];
+        let newVersion = 1;
         const update = async (existing, retryCount) => {
             if (!this.db)
                 throw new SqlDB_1.NoDatabaseException();
             if (!existing.version)
                 existing.version = 1;
-            const newVersion = existing.version + 1;
+            newVersion = existing.version + 1;
             const valueAsString = JSON.stringify(options.object);
             const params = new QueryParams_1.QueryParams(this.db);
             params.add("id", id);
@@ -432,7 +433,7 @@ class SqlStore {
             const params = new QueryParams_1.QueryParams(this.db);
             params.add("id", id);
             params.add("value", valueAsString);
-            params.add("version", existing ? existing.version : 1);
+            params.add("version", newVersion);
             const sql = `
                 INSERT INTO ${this.db.encodeName(container)}
                     (${this.db.encodeName("id")}, ${this.db.encodeName("value")}, ${this.db.encodeName("version")}) 
@@ -480,6 +481,8 @@ class SqlStore {
         }
         // put the id back back onto the object
         options.object.id = id;
+        // also update the version to match current db version
+        options.object.version = newVersion;
         //return result;
         if (options.returnObject) {
             return options.object;
