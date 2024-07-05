@@ -85,5 +85,8 @@ class SqliteDB extends SqlDB_1.SqlDB {
     encodeName(name) {
         return `"${name}"`;
     }
+    getLimitSql(maxRows, startingOffset) {
+        return (` LIMIT ${maxRows} ${startingOffset >= 0 ? (`OFFSET ${startingOffset}`) : ""}`);
+    }
 }
 exports.SqliteDB = SqliteDB;

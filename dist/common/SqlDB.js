@@ -138,7 +138,7 @@ class SqlDB {
         return name;
     }
     getComparator(comparator) {
-        if (comparator === "==") {
+        if ((comparator === "==") || (comparator === "===")) {
             return "=";
         }
         else if (comparator === "!=") {

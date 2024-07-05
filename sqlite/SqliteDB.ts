@@ -107,4 +107,10 @@ export class SqliteDB extends SqlDB {
         return `"${name}"`;
     }
 
+	getLimitSql(maxRows: number, startingOffset?: number) {
+		return (
+			` LIMIT ${maxRows} ${startingOffset! >= 0 ? (`OFFSET ${startingOffset}`) : ""}`
+		);
+	}	
+
 }

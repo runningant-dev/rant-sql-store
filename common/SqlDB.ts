@@ -180,7 +180,7 @@ export class SqlDB {
     }
 
 	getComparator(comparator: string) {
-		if (comparator === "==") {
+		if ((comparator === "==") || (comparator === "===")) {
 			return "=";
 		} else if (comparator === "!=") {
 			return " <> ";
