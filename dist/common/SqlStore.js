@@ -68,17 +68,17 @@ class SqlStore {
                 // console.log(`Creating container table '${options.name}'`)
                 await this.db.createContainer({ name });
             }
-            if (indexes || sensitive) {
+            if ((indexes && indexes.length > 0) || (sensitive && sensitive.length > 0)) {
                 const baseTableName = name;
                 const searchTableName = this.db.getSearchTableName(name);
                 const updates = [];
                 const params = new QueryParams_1.QueryParams(this.db);
                 const pName = params.add("name", name);
-                if (indexes) {
+                if (indexes && indexes.length > 0) {
                     const p = params.add("indexes", JSON.stringify(indexes));
                     updates.push(`indexes=${this.db.formatParamName(p)}`);
                 }
-                if (sensitive) {
+                if (sensitive && sensitive.length > 0) {
                     const p = params.add("sensitive", JSON.stringify(sensitive));
                     updates.push(`sensitive=${this.db.formatParamName(p)}`);
                 }
@@ -89,7 +89,7 @@ class SqlStore {
                 const execResult = await this.db.exec(sql, this.db.prepareParams(params));
                 console.log("execResult: " + JSON.stringify(execResult));
                 // update indexes 
-                if (indexes) {
+                if (indexes && indexes.length > 0) {
                     // does table exist?
                     let isNewTable = false;
                     if (!await this.db.searchTableExists(name)) {
@@ -473,7 +473,7 @@ class SqlStore {
         }
         // update indexes
         const indexes = await this.getIndexes(container);
-        if (indexes) {
+        if (indexes && indexes.length > 0) {
             console.log("indexes: " + JSON.stringify(indexes));
             const props = this.db.parseIndexes(indexes);
             const { rebuildIndex } = this.indexUpdater(container, props);
