@@ -151,7 +151,7 @@ class SqlStore {
                 }
             }
             // add any initial objects if supplied
-            if (options.objects) {
+            if (options.objects && options.objects.length > 0) {
                 for (let o of options.objects) {
                     await this.set({
                         container: name,
@@ -251,6 +251,10 @@ class SqlStore {
                         v = o;
                     }
                 }
+                // use an empty string instead of null
+                // this makes it less painful when searching
+                if (v === undefined || v === null)
+                    v = "";
                 values[prop.name] = v;
             }
             values.id = id;
