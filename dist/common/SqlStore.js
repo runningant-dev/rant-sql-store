@@ -5,6 +5,7 @@ const rant_store_1 = require("rant-store");
 const SqlDB_1 = require("./SqlDB");
 const QueryParams_1 = require("./QueryParams");
 const rant_utils_1 = require("rant-utils");
+const uuid_1 = require("uuid");
 class SqlStore {
     db;
     constructor() {
@@ -361,7 +362,7 @@ class SqlStore {
         let prevValue;
         if (!id) {
             // if inserting, auto create a id
-            id = (0, rant_utils_1.uuid)();
+            id = (0, uuid_1.v1)(); // chronological ids
         }
         else if (options.merge) {
             // get existing data 

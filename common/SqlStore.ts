@@ -5,7 +5,9 @@ import {
 } from "rant-store";
 import { DBPropDef, NoDatabaseException, SqlDB } from "./SqlDB";
 import { QueryParams } from "./QueryParams";
-import { formatDatabaseDateTime, isString, uuid } from "rant-utils";
+import { formatDatabaseDateTime, isString } from "rant-utils";
+import { v1 as uuidv1, v4 as uuidv4 } from "uuid";
+
 
 export class SqlStore {
 
@@ -470,7 +472,7 @@ export class SqlStore {
 
         if (!id) {
             // if inserting, auto create a id
-            id = uuid();
+            id = uuidv1(); // chronological ids
         
         } else if (options.merge) {
             // get existing data 
