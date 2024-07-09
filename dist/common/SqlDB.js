@@ -107,7 +107,7 @@ class SqlDB {
         params.add("container", container);
         params.add("id", id);
         params.add("change", JSON.stringify(change));
-        params.add("timestamp", (0, rant_utils_1.formatDateTime)(new Date()));
+        params.add("timestamp", (0, rant_utils_1.formatDatabaseDateTime)(new Date()));
         const sql = `
             INSERT INTO changes (
                 container, id, change, timestamp

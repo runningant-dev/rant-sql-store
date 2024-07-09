@@ -463,13 +463,13 @@ class SqlStore {
         };
         const existing = await this.get({ container, ids: [id] });
         if (existing) {
-            options.object.updated = (0, rant_utils_1.formatDateTime)(new Date());
+            options.object.updated = (0, rant_utils_1.formatDatabaseDateTime)(new Date());
             if (options.authToken)
                 options.object.updated_by = options.authToken.id;
             await update(existing, 0);
         }
         else {
-            options.object.created = (0, rant_utils_1.formatDateTime)(new Date());
+            options.object.created = (0, rant_utils_1.formatDatabaseDateTime)(new Date());
             options.object.updated = options.object.created;
             if (options.authToken)
                 options.object.created_by = options.authToken.id;

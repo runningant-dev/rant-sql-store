@@ -1,5 +1,5 @@
 import { Change, DataType, PropDef } from "rant-store";
-import { formatDateTime } from "rant-utils"
+import { formatDatabaseDateTime } from "rant-utils"
 import { QueryParam, QueryParams } from "./QueryParams";
 
 export interface DBPropDef {
@@ -138,7 +138,7 @@ export class SqlDB {
         params.add("container", container);
         params.add("id", id);
         params.add("change", JSON.stringify(change));
-        params.add("timestamp", formatDateTime(new Date()));
+        params.add("timestamp", formatDatabaseDateTime(new Date()));
 
         const sql = `
             INSERT INTO changes (

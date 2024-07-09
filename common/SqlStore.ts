@@ -5,7 +5,7 @@ import {
 } from "rant-store";
 import { DBPropDef, NoDatabaseException, SqlDB } from "./SqlDB";
 import { QueryParams } from "./QueryParams";
-import { formatDateTime, isString, uuid } from "rant-utils";
+import { formatDatabaseDateTime, isString, uuid } from "rant-utils";
 
 export class SqlStore {
 
@@ -590,11 +590,11 @@ export class SqlStore {
 
         const existing = await this.get({ container, ids: [id] });
         if (existing) {
-            options.object.updated = formatDateTime(new Date());
+            options.object.updated = formatDatabaseDateTime(new Date());
             if (options.authToken) options.object.updated_by = options.authToken.id;
             await update(existing, 0);
         } else {
-            options.object.created = formatDateTime(new Date());
+            options.object.created = formatDatabaseDateTime(new Date());
 			options.object.updated = options.object.created;
             if (options.authToken) options.object.created_by = options.authToken.id;
             await insert();
