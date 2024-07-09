@@ -11,13 +11,17 @@ class PostgresDB extends SqlDB_1.SqlDB {
     constructor(options) {
         super();
         // open the connection
-        // this.db = new Client(options);
-        this.db = new pg_1.Pool({
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
-            ...options,
-        });
+        if (options.usePool) {
+            this.db = new pg_1.Pool({
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000,
+                ...options,
+            });
+        }
+        else {
+            this.db = new pg_1.Client(options);
+        }
     }
     async connect() {
         await this.db.connect();

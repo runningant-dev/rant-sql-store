@@ -5,8 +5,14 @@ import { NoDatabaseException } from "../common/SqlDB";
 
 export class PostgresStore extends SqlStore {
 
-    constructor() {
+	usePool: boolean = true;
+
+    constructor(options?: { usePool?: boolean }) {
         super();
+
+		if (options) {
+			if (options.usePool === false) this.usePool = false;
+		}
     }
 
     async connect() {
@@ -19,6 +25,8 @@ export class PostgresStore extends SqlStore {
             password: env.DB_PASSWORD,
             database: env.DB_DATABASE,
             ssl: (env.DB_SSL === "true" ? true : false),
+
+			usePool: this.usePool,
         });
         await db.connect();
         this.db = db;   

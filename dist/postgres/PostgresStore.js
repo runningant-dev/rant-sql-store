@@ -6,8 +6,13 @@ const SqlStore_1 = require("../common/SqlStore");
 const rant_utils_1 = require("rant-utils");
 const SqlDB_1 = require("../common/SqlDB");
 class PostgresStore extends SqlStore_1.SqlStore {
-    constructor() {
+    usePool = true;
+    constructor(options) {
         super();
+        if (options) {
+            if (options.usePool === false)
+                this.usePool = false;
+        }
     }
     async connect() {
         const env = process.env;
@@ -18,6 +23,7 @@ class PostgresStore extends SqlStore_1.SqlStore {
             password: env.DB_PASSWORD,
             database: env.DB_DATABASE,
             ssl: (env.DB_SSL === "true" ? true : false),
+            usePool: this.usePool,
         });
         await db.connect();
         this.db = db;

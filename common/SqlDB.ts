@@ -29,7 +29,7 @@ export class SqlDB {
     }
 
     async close() {
-
+		
     }
 
     async checkForBaseRequirements() {

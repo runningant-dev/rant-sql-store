@@ -1,25 +1,30 @@
 // import { Client } from "pg";
 import { NoDatabaseException, SqlDB } from "../common/SqlDB";
 import { QueryParam, QueryParams } from "../common/QueryParams";
-import { Pool } from "pg";
+import { Client, Pool } from "pg";
 
 export class PostgresDB extends SqlDB {
 
     // db: Client;
-	db: Pool;
+	db: Pool | Client;
 
     constructor(options: any) {
         super();
-        
-        // open the connection
-        // this.db = new Client(options);
 
-		this.db = new Pool({
-			max: 20,
-			idleTimeoutMillis: 30000,
-			connectionTimeoutMillis: 2000,
-			...options,
-		});
+        // open the connection
+		if (options.usePool) {
+			this.db = new Pool({
+				max: 20,
+				idleTimeoutMillis: 30000,
+				connectionTimeoutMillis: 2000,
+				...options,
+			});
+	
+		} else {
+	        this.db = new Client(options);
+
+		}
+        
     }
 
     async connect() {
