@@ -281,27 +281,27 @@ class SqlStore {
             rebuildIndex,
         };
     }
+    validateIDs(ids) {
+        if (!ids)
+            return undefined;
+        const items = [];
+        for (let id of ids) {
+            if (!id || !id.length)
+                continue;
+            if (id.length > 50)
+                continue;
+            if (id.indexOf("'") >= 0)
+                continue;
+            items.push(id);
+        }
+        if (items.length <= 0)
+            return undefined;
+        return "'" + items.join("','") + "'";
+    }
     async get(options) {
         console.log("SqlStore.get()");
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
-        function validateIDs(ids) {
-            if (!ids)
-                return undefined;
-            const items = [];
-            for (let id of ids) {
-                if (!id || !id.length)
-                    continue;
-                if (id.length > 50)
-                    continue;
-                if (id.indexOf("'") >= 0)
-                    continue;
-                items.push(id);
-            }
-            if (items.length <= 0)
-                return undefined;
-            return "'" + items.join("','") + "'";
-        }
         let pruner;
         function hasRole(name) {
             if (!options.roles)
@@ -341,7 +341,7 @@ class SqlStore {
         }
         else {
             // multiple
-            const preparedIDs = validateIDs(options.ids);
+            const preparedIDs = this.validateIDs(options.ids);
             const rows = await this.db.getAll(`
 				SELECT ${this.db.encodeName("id")}, ${this.db.encodeName("value")}, ${this.db.encodeName("version")}
 				FROM ${this.db.encodeName(options.container)} 

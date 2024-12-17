@@ -21,6 +21,7 @@ export declare class SqlStore {
         authToken?: AuthToken;
     }, changeTracking?: TrackingOptions): Promise<true | undefined>;
     private indexUpdater;
+    validateIDs(ids?: string[]): string | undefined;
     get(options: {
         container: string;
         ids: string[];
