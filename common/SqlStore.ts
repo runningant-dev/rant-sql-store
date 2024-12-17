@@ -105,8 +105,10 @@ export class SqlStore {
                 const params = new QueryParams(db);
                 const pName = params.add("container", name);
 
-				if (!(await db.getOne(`SELECT container FROM ${db.encodeName("schema")} WHERE container=${db.formatParamName(pName)}`), db.prepareParams(params))) {
-					await db.exec(`INSERT INTO ${db.encodeName("schema")} (container) VALUES (${db.formatParamName(pName)});`, db.prepareParams(params));
+				const p = params.prepare();
+
+				if (!(await db.getOne(`SELECT container FROM ${db.encodeName("schema")} WHERE container=${db.formatParamName(pName)}`, p))) {
+					await db.exec(`INSERT INTO ${db.encodeName("schema")} (container) VALUES (${db.formatParamName(pName)});`, p);
 				}
 			}
 			await checkSchema(this.db!);
