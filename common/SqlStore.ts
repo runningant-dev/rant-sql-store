@@ -65,7 +65,6 @@ export class SqlStore {
         }
     }
 
-
     async setContainer(options: 
         ContainerDef & {
             recreate?: boolean,
@@ -99,6 +98,19 @@ export class SqlStore {
                 // console.log(`Creating container table '${options.name}'`)
                 await this.db.createContainer({ name });
             }
+
+			// there is a possibility that the table exists but its not yet in the schema table
+			// so detect and auto correct for that
+			const checkSchema = async(db: SqlDB) => {
+                const params = new QueryParams(db);
+                const pName = params.add("container", name);
+
+				if (!(await db.getOne(`SELECT container FROM ${db.encodeName("schema")} WHERE container=${db.formatParamName(pName)}`))) {
+					await db.exec(`INSERT INTO ${db.encodeName("schema")} (container) VALUES (${db.formatParamName(pName)});`);
+				}
+			}
+			await checkSchema(this.db!);
+
 
             if ((indexes && indexes.length > 0) || (sensitive && sensitive.length > 0)) {
 
