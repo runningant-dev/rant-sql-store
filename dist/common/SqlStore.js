@@ -74,8 +74,8 @@ class SqlStore {
             const checkSchema = async (db) => {
                 const params = new QueryParams_1.QueryParams(db);
                 const pName = params.add("container", name);
-                if (!(await db.getOne(`SELECT container FROM ${db.encodeName("schema")} WHERE container=${db.formatParamName(pName)}`))) {
-                    await db.exec(`INSERT INTO ${db.encodeName("schema")} (container) VALUES (${db.formatParamName(pName)});`);
+                if (!(await db.getOne(`SELECT container FROM ${db.encodeName("schema")} WHERE container=${db.formatParamName(pName)}`), db.prepareParams(params))) {
+                    await db.exec(`INSERT INTO ${db.encodeName("schema")} (container) VALUES (${db.formatParamName(pName)});`, db.prepareParams(params));
                 }
             };
             await checkSchema(this.db);
