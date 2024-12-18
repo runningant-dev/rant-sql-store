@@ -784,14 +784,17 @@ export class SqlStore {
                 throw `Attempting to query a property '${ex.prop}' in container '${options.container}' that has not been indexed`;
             }
 
-            const paramName = "p" + paramCounter++;
-            params.addLowercase(paramName, ex.value);
-
 			const comparator = db.getComparator(ex.comparator);
 
-            crit.push(
-                "s." + ex.prop.replace(".", "_") + " " + comparator + " " + params.name(paramName)
-            );
+			if (comparator !== "in" && comparator !== "not in") {
+				const paramName = "p" + paramCounter++;
+				params.addLowercase(paramName, ex.value);
+				crit.push(
+					"s." + ex.prop.replace(".", "_") + " " + comparator + " " + params.name(paramName)
+				);
+			} else {
+				crit.push("s." + ex.prop.replace(".", "_") + " " + ex.comparator + " " + ex.value);
+			}
 
         }
         function parseComparisonArray(items: Expression[]) {
