@@ -790,10 +790,10 @@ export class SqlStore {
 				const paramName = "p" + paramCounter++;
 				params.addLowercase(paramName, ex.value);
 				crit.push(
-					"s." + ex.prop.replace(".", "_") + " " + comparator + " (" + params.name(paramName) + ")",
+					"s." + ex.prop.replace(".", "_") + " " + comparator + " " + params.name(paramName),
 				);
 			} else {
-				crit.push("s." + ex.prop.replace(".", "_") + " " + ex.comparator + " " + ex.value);
+				crit.push("s." + ex.prop.replace(".", "_") + " " + ex.comparator + " (" + ex.value + ")");
 			}
 
         }
