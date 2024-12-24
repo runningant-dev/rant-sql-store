@@ -296,7 +296,7 @@ class SqlStore {
         }
         if (items.length <= 0)
             return undefined;
-        return "'" + items.join("','") + "'";
+        return "'" + items.join("','").toLowerCase() + "'";
     }
     async get(options) {
         console.log("SqlStore.get()");
