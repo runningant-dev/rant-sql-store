@@ -788,13 +788,9 @@ export class SqlStore {
 
 			if (comparator !== "in" && comparator !== "not in") {
 				const paramName = "p" + paramCounter++;
-				let val = ex.value;
-				if (val && !val.startsWith("(")) {
-					val = `(${val})`;
-				}
-				params.addLowercase(paramName, val);
+				params.addLowercase(paramName, ex.value);
 				crit.push(
-					"s." + ex.prop.replace(".", "_") + " " + comparator + " " + params.name(paramName)
+					"s." + ex.prop.replace(".", "_") + " " + comparator + " (" + params.name(paramName) + ")",
 				);
 			} else {
 				crit.push("s." + ex.prop.replace(".", "_") + " " + ex.comparator + " " + ex.value);
