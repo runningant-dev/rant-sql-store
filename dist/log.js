@@ -2,14 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.error = exports.info = exports.log = void 0;
 const rant_utils_1 = require("rant-utils");
-const pkg = require("./package.json");
-// import * as pkg from "./package.json";
+const pkg = "rant-sql-store";
 const cols = {
     info: "BgGreen",
     error: "BgRed",
 };
 function log(message, severity) {
-    console.log((0, rant_utils_1.colorText)(pkg.name + ": " + message, cols[severity]));
+    console.log((0, rant_utils_1.colorText)(pkg + ": " + message, cols[severity]));
 }
 exports.log = log;
 function info(message) {

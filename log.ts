@@ -1,8 +1,6 @@
 import { colorText } from "rant-utils";
 
-const pkg = require("./package.json");
-
-// import * as pkg from "./package.json";
+const pkg = "rant-sql-store";
 
 const cols = {
 	info: "BgGreen",
@@ -10,7 +8,7 @@ const cols = {
 };
 
 export function log(message: string, severity: "info" | "error") {
-	console.log(colorText(pkg.name + ": " + message, cols[severity] as any));
+	console.log(colorText(pkg + ": " + message, cols[severity] as any));
 }
 
 export function info(message: string) {
