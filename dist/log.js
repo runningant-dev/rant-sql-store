@@ -18,7 +18,9 @@ const cols = {
     }
 };
 function log(message, severity) {
-    console.log((0, rant_utils_1.colorText)(pkg + ": " + message, cols[severity]));
+    const c = cols[severity];
+    console.log((0, rant_utils_1.colorText)(pkg, c.pkg) + "\x1b[0m"
+        + (0, rant_utils_1.colorText)(" " + message, c.message) + "\x1b[0m");
 }
 exports.log = log;
 function info(message) {

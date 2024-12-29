@@ -18,7 +18,12 @@ const cols = {
 };
 
 export function log(message: string, severity: "info" | "data" | "error") {
-	console.log(colorText(pkg + ": " + message, cols[severity] as any));
+	const c = cols[severity];
+
+	console.log(
+		colorText(pkg, c.pkg as any) + "\x1b[0m"
+		+ colorText(" " + message, c.message as any) + "\x1b[0m"
+	);
 }
 
 export function info(message: string) {
