@@ -7,7 +7,7 @@ import { DBPropDef, NoDatabaseException, SqlDB } from "./SqlDB";
 import { QueryParams } from "./QueryParams";
 import { formatDatabaseDateTime, isString } from "rant-utils";
 import { v1 as uuidv1, v4 as uuidv4 } from "uuid";
-import { error, info } from "../log";
+import { data, error, info } from "../log";
 
 
 export class SqlStore {
@@ -137,12 +137,17 @@ export class SqlStore {
                 // info(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
                 // info(JSON.stringify(params))
                 const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE ${this.db.encodeName("container")}=${params.name("name")}`;
-                info(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
+				const preparedParams = this.db.prepareParams(params);
+
+				data(sql);
+				data(preparedParams);
+				
                 const execResult = await this.db.exec(
                     sql,
-                    this.db.prepareParams(params),
+                    preparedParams,
                 );
-                info("execResult: " + JSON.stringify(execResult));
+                //info("execResult: " + JSON.stringify(execResult));
+				data(execResult);
 
                 // update indexes 
                 if (indexes && indexes.length > 0) {
@@ -188,7 +193,7 @@ export class SqlStore {
 							`ALTER TABLE ${this.db.encodeName(searchTableName)}
 							ADD COLUMN ${this.db.encodeName(prop.name)} ${dt};
 							`;
-                        info(sql);
+                        data(sql);
                         await this.db.exec(
 							sql
 						);
@@ -262,13 +267,13 @@ export class SqlStore {
         let attribColumnNames = props.map((def, i) => {
             return this.db?.encodeName(def.name);
         }).join(",");
-        info("attribColumnNames: " + JSON.stringify(attribColumnNames))
+        info("attribColumnNames: " + JSON.stringify(attribColumnNames));
 
         let attribValueParams = props.map((def) => params.name(def.name)).join(",");
-        info("attribValueParams: " + JSON.stringify(attribValueParams))
+        info("attribValueParams: " + JSON.stringify(attribValueParams));
 
         let attribUpdatePairs = props.map((def, i) => this.db?.encodeName(def.name) + "=" + params.name(def.name)).join(",");
-        info("attribUpdatePairs: " + JSON.stringify(attribUpdatePairs))
+        info("attribUpdatePairs: " + JSON.stringify(attribUpdatePairs));
 
         const searchTableName = this.db!.getSearchTableName(container);
 
@@ -281,12 +286,16 @@ export class SqlStore {
                 INSERT INTO ${this.db.encodeName(searchTableName)} 
                 (${this.db.encodeName("id")}, ${attribColumnNames})
                 VALUES (${params.name("id")}, ${attribValueParams})`;
-            info(sql);
-            info(JSON.stringify(params.prepare()))
-            info(JSON.stringify(attribColumnNames))
+
+			const preparedParams = params.prepare();
+
+			data(sql);
+			data(preparedParams);
+			data(attribColumnNames);
+
             await this.db.exec(
                 sql,
-                params.prepare(),
+                preparedParams,
             );
         }
         const doUpdate = async (values: any, id: string) => {
@@ -298,7 +307,9 @@ export class SqlStore {
                 UPDATE ${this.db.encodeName(searchTableName)}
                 SET ${attribUpdatePairs}
                 WHERE ${this.db.encodeName("id")}=${params.name("id")}`;
-            info(sql);
+            
+			data(sql);
+
             const result = await this.db.exec(
                 sql,
                 params.prepare(),
@@ -319,7 +330,7 @@ export class SqlStore {
 
             const values: any = {};
 
-            info("props: " + JSON.stringify(props))
+			data(props);
 
             for(let prop of props) {
                 let v;
@@ -587,8 +598,8 @@ export class SqlStore {
                     ${params.name("version")}
                 )`;
 
-            info(sql);
-            info(JSON.stringify(params.prepare()));
+            data(sql);
+            data(params.prepare());
 
             const result = await this.db.exec(sql, params.prepare());
             if (!result.rowCount) {
@@ -621,7 +632,7 @@ export class SqlStore {
         // update indexes
         const indexes = await this.getIndexes(container);
         if (indexes && indexes.length > 0) {
-            info("indexes: "+ JSON.stringify(indexes))
+            info("indexes: "+ JSON.stringify(indexes));
             const props = this.db.parseIndexes(indexes);
 
             const { rebuildIndex } = this.indexUpdater(container, props);
@@ -726,7 +737,7 @@ export class SqlStore {
         for(let row of names) {
             if (ignore.indexOf(row.name) < 0) {
                 const sql = `DROP TABLE ${this.db.encodeName(row.name)}`;
-                info(sql);
+                data(sql);
                 await this.db.exec(sql);
             }
         }
@@ -835,7 +846,8 @@ export class SqlStore {
                 qry = parsed.query;
             }
 
-            info("qry obj: " + JSON.stringify(qry))
+            // info("qry obj: " + JSON.stringify(qry))
+			data(qry);
 
             try {
                 if (Array.isArray(qry)) {
@@ -872,7 +884,7 @@ export class SqlStore {
 				// only allow sort on indexed columns
 				// i.e. need to have pulled the data from json into an addressable col
 				if (!hasIndex(s.name)) {
-					info(`WARNING: Attempt to sort by non-indexed column ${s.name} ignored`);
+					error(`WARNING: Attempt to sort by non-indexed column ${s.name} ignored`);
 					continue;
 				}
 				orderSql.push(`s.${this.db.encodeName(s.name)} ${s.direction === "DESC" ? "DESC" : "ASC"}`);

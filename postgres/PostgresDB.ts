@@ -2,7 +2,7 @@
 import { NoDatabaseException, SqlDB } from "../common/SqlDB";
 import { QueryParam, QueryParams } from "../common/QueryParams";
 import { Client, Pool } from "pg";
-import { info } from "../log";
+import { data, info } from "../log";
 
 export class PostgresDB extends SqlDB {
 
@@ -37,7 +37,11 @@ export class PostgresDB extends SqlDB {
     }
 
     async exec(sql: string, params?: any[]) {
-        const result = await this.db.query(sql, params);
+		info("PostgresDB.exec()");
+		data(sql);
+		data(params);
+
+		const result = await this.db.query(sql, params);
         return {
             rowCount: (result && result.rowCount !== null) ? result.rowCount : 0,
         };
@@ -45,7 +49,11 @@ export class PostgresDB extends SqlDB {
     
 
     async getOne(sql: string, params?: any[]): Promise<any | undefined> {
-        const result = await this.getAll(sql, params);
+		info("PostgresDB.getOne()");
+		data(sql);
+		data(params);
+
+		const result = await this.getAll(sql, params);
         if (result) {
             return result[0];
         } else {
@@ -54,9 +62,9 @@ export class PostgresDB extends SqlDB {
     }
 
     async getAll(sql: string, params?: any[]) {
-		info("PostgresDB.getAll() -> " + sql);
-		console.dir(params);
-
+		info("PostgresDB.getAll()");
+		data(sql);
+		data(params);
 
         const queryResult = await this.db.query(sql, params);
         if (!queryResult || queryResult.rows.length <= 0) return undefined;
@@ -68,7 +76,7 @@ export class PostgresDB extends SqlDB {
         const pName = q.add("name", name);
 
         const sql = `SELECT table_name as name from information_schema.tables WHERE table_name = ${this.formatParamName(pName)}`;
-        info(sql)
+        // data(sql)
 
         const exists: any = await this.getOne(
             sql, 

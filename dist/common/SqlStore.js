@@ -98,9 +98,12 @@ class SqlStore {
                 // info(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
                 // info(JSON.stringify(params))
                 const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE ${this.db.encodeName("container")}=${params.name("name")}`;
-                (0, log_1.info)(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
-                const execResult = await this.db.exec(sql, this.db.prepareParams(params));
-                (0, log_1.info)("execResult: " + JSON.stringify(execResult));
+                const preparedParams = this.db.prepareParams(params);
+                (0, log_1.data)(sql);
+                (0, log_1.data)(preparedParams);
+                const execResult = await this.db.exec(sql, preparedParams);
+                //info("execResult: " + JSON.stringify(execResult));
+                (0, log_1.data)(execResult);
                 // update indexes 
                 if (indexes && indexes.length > 0) {
                     // does table exist?
@@ -137,7 +140,7 @@ class SqlStore {
                         const sql = `ALTER TABLE ${this.db.encodeName(searchTableName)}
 							ADD COLUMN ${this.db.encodeName(prop.name)} ${dt};
 							`;
-                        (0, log_1.info)(sql);
+                        (0, log_1.data)(sql);
                         await this.db.exec(sql);
                         // create index for searching on this column
                         await this.createIndex(searchTableName, prop.name);
@@ -212,10 +215,11 @@ class SqlStore {
                 INSERT INTO ${this.db.encodeName(searchTableName)} 
                 (${this.db.encodeName("id")}, ${attribColumnNames})
                 VALUES (${params.name("id")}, ${attribValueParams})`;
-            (0, log_1.info)(sql);
-            (0, log_1.info)(JSON.stringify(params.prepare()));
-            (0, log_1.info)(JSON.stringify(attribColumnNames));
-            await this.db.exec(sql, params.prepare());
+            const preparedParams = params.prepare();
+            (0, log_1.data)(sql);
+            (0, log_1.data)(preparedParams);
+            (0, log_1.data)(attribColumnNames);
+            await this.db.exec(sql, preparedParams);
         };
         const doUpdate = async (values, id) => {
             if (!this.db)
@@ -225,7 +229,7 @@ class SqlStore {
                 UPDATE ${this.db.encodeName(searchTableName)}
                 SET ${attribUpdatePairs}
                 WHERE ${this.db.encodeName("id")}=${params.name("id")}`;
-            (0, log_1.info)(sql);
+            (0, log_1.data)(sql);
             const result = await this.db.exec(sql, params.prepare());
             if (!result.rowCount) {
                 await doInsert(values, id);
@@ -238,7 +242,7 @@ class SqlStore {
             (0, log_1.info)("SqlStore.indexUpdater.rebuildIndex()");
             // info("rebuildIndex: " + id + ": " + JSON.stringify(value));
             const values = {};
-            (0, log_1.info)("props: " + JSON.stringify(props));
+            (0, log_1.data)(props);
             for (let prop of props) {
                 let v;
                 if (!value) {
@@ -459,8 +463,8 @@ class SqlStore {
                     ${params.name("value")}, 
                     ${params.name("version")}
                 )`;
-            (0, log_1.info)(sql);
-            (0, log_1.info)(JSON.stringify(params.prepare()));
+            (0, log_1.data)(sql);
+            (0, log_1.data)(params.prepare());
             const result = await this.db.exec(sql, params.prepare());
             if (!result.rowCount) {
                 throw "Failed attempt to insert ${container}/${id}";
@@ -565,7 +569,7 @@ class SqlStore {
         for (let row of names) {
             if (ignore.indexOf(row.name) < 0) {
                 const sql = `DROP TABLE ${this.db.encodeName(row.name)}`;
-                (0, log_1.info)(sql);
+                (0, log_1.data)(sql);
                 await this.db.exec(sql);
             }
         }
@@ -655,7 +659,8 @@ class SqlStore {
                 }
                 qry = parsed.query;
             }
-            (0, log_1.info)("qry obj: " + JSON.stringify(qry));
+            // info("qry obj: " + JSON.stringify(qry))
+            (0, log_1.data)(qry);
             try {
                 if (Array.isArray(qry)) {
                     parseComparisonArray(qry);
@@ -692,7 +697,7 @@ class SqlStore {
                 // only allow sort on indexed columns
                 // i.e. need to have pulled the data from json into an addressable col
                 if (!hasIndex(s.name)) {
-                    (0, log_1.info)(`WARNING: Attempt to sort by non-indexed column ${s.name} ignored`);
+                    (0, log_1.error)(`WARNING: Attempt to sort by non-indexed column ${s.name} ignored`);
                     continue;
                 }
                 orderSql.push(`s.${this.db.encodeName(s.name)} ${s.direction === "DESC" ? "DESC" : "ASC"}`);

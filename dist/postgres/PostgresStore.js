@@ -41,7 +41,7 @@ class PostgresStore extends SqlStore_1.SqlStore {
 				${this.db.encodeName(propName)}
 			);
 		`;
-        (0, log_1.info)(sql);
+        (0, log_1.data)(sql);
         await this.db.exec(sql);
     }
 }

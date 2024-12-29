@@ -32,7 +32,6 @@ export class MSSQLDB extends SqlDB {
     }
 
     async exec(sql: string, params?: any[]) {
-
         info(`exec: ${sql}`);
 
         return await new Promise<{

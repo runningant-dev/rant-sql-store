@@ -31,12 +31,18 @@ class PostgresDB extends SqlDB_1.SqlDB {
         await this.db.end();
     }
     async exec(sql, params) {
+        (0, log_1.info)("PostgresDB.exec()");
+        (0, log_1.data)(sql);
+        (0, log_1.data)(params);
         const result = await this.db.query(sql, params);
         return {
             rowCount: (result && result.rowCount !== null) ? result.rowCount : 0,
         };
     }
     async getOne(sql, params) {
+        (0, log_1.info)("PostgresDB.getOne()");
+        (0, log_1.data)(sql);
+        (0, log_1.data)(params);
         const result = await this.getAll(sql, params);
         if (result) {
             return result[0];
@@ -46,8 +52,9 @@ class PostgresDB extends SqlDB_1.SqlDB {
         }
     }
     async getAll(sql, params) {
-        (0, log_1.info)("PostgresDB.getAll() -> " + sql);
-        console.dir(params);
+        (0, log_1.info)("PostgresDB.getAll()");
+        (0, log_1.data)(sql);
+        (0, log_1.data)(params);
         const queryResult = await this.db.query(sql, params);
         if (!queryResult || queryResult.rows.length <= 0)
             return undefined;
@@ -57,7 +64,7 @@ class PostgresDB extends SqlDB_1.SqlDB {
         const q = new QueryParams_1.QueryParams(this);
         const pName = q.add("name", name);
         const sql = `SELECT table_name as name from information_schema.tables WHERE table_name = ${this.formatParamName(pName)}`;
-        (0, log_1.info)(sql);
+        // data(sql)
         const exists = await this.getOne(sql, this.prepareParams(q));
         (0, log_1.info)("tableExists (" + name + ") result: " + (exists ? "Y" : "N"));
         return (exists !== undefined);
