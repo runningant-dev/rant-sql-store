@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UnknownParamException = exports.QueryParams = void 0;
 const rant_utils_1 = require("rant-utils");
+const log_1 = require("../log");
 class QueryParams {
     db;
     items = [];
@@ -52,7 +53,7 @@ class QueryParams {
     name(name) {
         const i = this.get(name);
         if (!i) {
-            console.log("UnknownParamException: " + name);
+            (0, log_1.error)("UnknownParamException: " + name);
             throw new UnknownParamException();
         }
         return this.db.formatParamName(i);

@@ -5,6 +5,7 @@ const mssql_1 = require("mssql");
 const SqlDB_1 = require("../common/SqlDB");
 const QueryParams_1 = require("../common/QueryParams");
 const rant_utils_1 = require("rant-utils");
+const log_1 = require("../log");
 class MSSQLDB extends SqlDB_1.SqlDB {
     config;
     constructor(options) {
@@ -24,7 +25,7 @@ class MSSQLDB extends SqlDB_1.SqlDB {
     async close() {
     }
     async exec(sql, params) {
-        console.log(`exec: ${sql}`);
+        (0, log_1.info)(`exec: ${sql}`);
         return await new Promise((resolve, reject) => {
             const req = new mssql_1.Request();
             this.setParams(req, params);
@@ -80,7 +81,7 @@ class MSSQLDB extends SqlDB_1.SqlDB {
         // const queryResult = await this.db.query(sql, params);
         // if (!queryResult || queryResult.rows.length <= 0) return undefined;
         // return queryResult.rows;
-        console.log(`exec: ${sql}`);
+        (0, log_1.info)(`exec: ${sql}`);
         return await new Promise((resolve, reject) => {
             const rows = [];
             const req = new mssql_1.Request();
@@ -107,7 +108,7 @@ class MSSQLDB extends SqlDB_1.SqlDB {
         const q = new QueryParams_1.QueryParams(this);
         const pName = q.add("name", name);
         const sql = `SELECT table_name as name from information_schema.tables WHERE table_name = ${this.formatParamName(pName)}`;
-        console.log(sql);
+        (0, log_1.info)(sql);
         const exists = await this.getOne(sql, this.prepareParams(q));
         return (exists !== undefined);
     }

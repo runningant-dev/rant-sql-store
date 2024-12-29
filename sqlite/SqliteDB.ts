@@ -3,6 +3,7 @@ import { Database, Statement } from 'sqlite3';
 
 import { NoDatabaseException, SqlDB } from "../common/SqlDB";
 import { QueryParam, QueryParams } from "../common/QueryParams";
+import { info } from '../log';
 
 export class SqliteDB extends SqlDB {
 
@@ -28,7 +29,7 @@ export class SqliteDB extends SqlDB {
     }
 
     async exec(sql: string, params?: any) {
-        console.log("SqliteDB.exec(): " + sql + ", with params: " + JSON.stringify(params));
+        info("SqliteDB.exec(): " + sql + ", with params: " + JSON.stringify(params));
 
         if (!this.db) throw new NoDatabaseException();
 
@@ -57,7 +58,7 @@ export class SqliteDB extends SqlDB {
         const pName = q.add("name", name);
 
         const sql = `SELECT name from sqlite_master where type='table' and name = ${this.formatParamName(pName)}`;
-        console.log(sql)
+        info(sql)
 
         const exists: any = await this.getOne(
             sql, 
@@ -76,7 +77,7 @@ export class SqliteDB extends SqlDB {
     }
 
     async getTableColumns(tableName: string): Promise<any> {
-        console.log("SqliteDB.getTableColumns()");
+        info("SqliteDB.getTableColumns()");
 
         const params = new QueryParams(this);
         params.add("tableName", tableName);

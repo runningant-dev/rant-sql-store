@@ -5,6 +5,7 @@ exports.PostgresDB = void 0;
 const SqlDB_1 = require("../common/SqlDB");
 const QueryParams_1 = require("../common/QueryParams");
 const pg_1 = require("pg");
+const log_1 = require("../log");
 class PostgresDB extends SqlDB_1.SqlDB {
     // db: Client;
     db;
@@ -45,7 +46,7 @@ class PostgresDB extends SqlDB_1.SqlDB {
         }
     }
     async getAll(sql, params) {
-        console.log("PostgresDB.getAll() -> " + sql);
+        (0, log_1.info)("PostgresDB.getAll() -> " + sql);
         console.dir(params);
         const queryResult = await this.db.query(sql, params);
         if (!queryResult || queryResult.rows.length <= 0)
@@ -56,9 +57,9 @@ class PostgresDB extends SqlDB_1.SqlDB {
         const q = new QueryParams_1.QueryParams(this);
         const pName = q.add("name", name);
         const sql = `SELECT table_name as name from information_schema.tables WHERE table_name = ${this.formatParamName(pName)}`;
-        console.log(sql);
+        (0, log_1.info)(sql);
         const exists = await this.getOne(sql, this.prepareParams(q));
-        console.log("tableExists (" + name + ") result: " + (exists ? "Y" : "N"));
+        (0, log_1.info)("tableExists (" + name + ") result: " + (exists ? "Y" : "N"));
         return (exists !== undefined);
     }
     async getUserTables() {

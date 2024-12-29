@@ -5,6 +5,7 @@ const sqlite_1 = require("sqlite");
 const sqlite3_1 = require("sqlite3");
 const SqlDB_1 = require("../common/SqlDB");
 const QueryParams_1 = require("../common/QueryParams");
+const log_1 = require("../log");
 class SqliteDB extends SqlDB_1.SqlDB {
     filename;
     db;
@@ -22,7 +23,7 @@ class SqliteDB extends SqlDB_1.SqlDB {
         return this.db?.close();
     }
     async exec(sql, params) {
-        console.log("SqliteDB.exec(): " + sql + ", with params: " + JSON.stringify(params));
+        (0, log_1.info)("SqliteDB.exec(): " + sql + ", with params: " + JSON.stringify(params));
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const result = await this.db.run(sql, params);
@@ -48,7 +49,7 @@ class SqliteDB extends SqlDB_1.SqlDB {
         const q = new QueryParams_1.QueryParams(this);
         const pName = q.add("name", name);
         const sql = `SELECT name from sqlite_master where type='table' and name = ${this.formatParamName(pName)}`;
-        console.log(sql);
+        (0, log_1.info)(sql);
         const exists = await this.getOne(sql, this.prepareParams(q));
         return (exists !== undefined);
     }
@@ -60,7 +61,7 @@ class SqliteDB extends SqlDB_1.SqlDB {
         `);
     }
     async getTableColumns(tableName) {
-        console.log("SqliteDB.getTableColumns()");
+        (0, log_1.info)("SqliteDB.getTableColumns()");
         const params = new QueryParams_1.QueryParams(this);
         params.add("tableName", tableName);
         return this.getAll(`

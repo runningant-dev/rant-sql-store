@@ -3,6 +3,7 @@ import { connect, config, Request, TYPES } from "mssql";
 import { SqlDB } from "../common/SqlDB";
 import { QueryParam, QueryParams } from "../common/QueryParams";
 import { isString } from "rant-utils";
+import { info } from "../log";
 
 export class MSSQLDB extends SqlDB {
 
@@ -32,7 +33,7 @@ export class MSSQLDB extends SqlDB {
 
     async exec(sql: string, params?: any[]) {
 
-        console.log(`exec: ${sql}`);
+        info(`exec: ${sql}`);
 
         return await new Promise<{
             rowCount: number,
@@ -97,7 +98,7 @@ export class MSSQLDB extends SqlDB {
         // if (!queryResult || queryResult.rows.length <= 0) return undefined;
         // return queryResult.rows;
 
-        console.log(`exec: ${sql}`);
+        info(`exec: ${sql}`);
 
         return await new Promise<any[]>((resolve, reject) => {
             const rows = [] as any[];
@@ -132,7 +133,7 @@ export class MSSQLDB extends SqlDB {
         const pName = q.add("name", name);
 
         const sql = `SELECT table_name as name from information_schema.tables WHERE table_name = ${this.formatParamName(pName)}`;
-        console.log(sql)
+        info(sql)
 
         const exists: any = await this.getOne(
             sql, 

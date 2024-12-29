@@ -1,5 +1,6 @@
 import { isString } from "rant-utils";
 import { SqlDB } from "./SqlDB";
+import { error } from "../log";
 
 export interface QueryParam {
     index: number,
@@ -59,7 +60,7 @@ export class QueryParams {
     name(name: string) {
         const i = this.get(name);
         if (!i) {
-            console.log("UnknownParamException: " + name);
+            error("UnknownParamException: " + name);
             throw new UnknownParamException();
         }
         return this.db.formatParamName(i);

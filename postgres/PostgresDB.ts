@@ -2,6 +2,7 @@
 import { NoDatabaseException, SqlDB } from "../common/SqlDB";
 import { QueryParam, QueryParams } from "../common/QueryParams";
 import { Client, Pool } from "pg";
+import { info } from "../log";
 
 export class PostgresDB extends SqlDB {
 
@@ -53,7 +54,7 @@ export class PostgresDB extends SqlDB {
     }
 
     async getAll(sql: string, params?: any[]) {
-		console.log("PostgresDB.getAll() -> " + sql);
+		info("PostgresDB.getAll() -> " + sql);
 		console.dir(params);
 
 
@@ -67,14 +68,14 @@ export class PostgresDB extends SqlDB {
         const pName = q.add("name", name);
 
         const sql = `SELECT table_name as name from information_schema.tables WHERE table_name = ${this.formatParamName(pName)}`;
-        console.log(sql)
+        info(sql)
 
         const exists: any = await this.getOne(
             sql, 
             this.prepareParams(q)
         );
 
-		console.log("tableExists (" + name + ") result: " + (exists ? "Y" : "N"));
+		info("tableExists (" + name + ") result: " + (exists ? "Y" : "N"));
 
         return (exists !== undefined);
     }

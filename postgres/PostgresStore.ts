@@ -2,6 +2,7 @@ import { PostgresDB } from "./PostgresDB";
 import { SqlStore } from "../common/SqlStore";
 import { toInt } from "rant-utils";
 import { NoDatabaseException } from "../common/SqlDB";
+import { info } from "../log";
 
 export class PostgresStore extends SqlStore {
 
@@ -46,7 +47,7 @@ export class PostgresStore extends SqlStore {
 			);
 		`;
 
-		console.log(sql);
+		info(sql);
 
 		await this.db.exec(
 			sql

@@ -7,6 +7,7 @@ import { DBPropDef, NoDatabaseException, SqlDB } from "./SqlDB";
 import { QueryParams } from "./QueryParams";
 import { formatDatabaseDateTime, isString } from "rant-utils";
 import { v1 as uuidv1, v4 as uuidv4 } from "uuid";
+import { error, info } from "../log";
 
 
 export class SqlStore {
@@ -17,13 +18,13 @@ export class SqlStore {
     }
 
     async connect() {
-        console.log("SqlStore.connect()");
+        info("SqlStore.connect()");
         // override with actual db connection
         // make sure once connected a call is made to db.checkForBaseRequirements()
     }
 
     async close() {
-        console.log("SqlStore.close()");
+        info("SqlStore.close()");
         if (!this.db) throw new NoDatabaseException();
 
         return await this.db.close();
@@ -32,7 +33,7 @@ export class SqlStore {
     async getContainer(options: {
         name: string,
     }) {
-        console.log("SqlStore.getContainer()");
+        info("SqlStore.getContainer()");
         if (!this.db) throw new NoDatabaseException();
 
         const name = options.name.toLowerCase();
@@ -48,20 +49,20 @@ export class SqlStore {
     async deleteContainer(options: {
         name: string
     }) {
-        console.log("SqlStore.deleteContainer()");
+        info("SqlStore.deleteContainer()");
         if (!this.db) throw new NoDatabaseException();
 
         const name = options.name.toLowerCase();
 
-        // console.log(`Attempting to delete ${name}`);
+        // info(`Attempting to delete ${name}`);
         if (await this.db.tableExists(name)) {
-            // console.log(`Removing table '${name}'`)
+            // info(`Removing table '${name}'`)
             await this.db.exec(`DELETE FROM ${this.db.encodeName("schema")} WHERE ${this.db.encodeName("container")} = '${name}';`);
             await this.db.exec(`DELETE FROM changes WHERE ${this.db.encodeName("container")} = '${name}';`);
             await this.db.exec(`DROP TABLE IF EXISTS ${this.db.encodeName(name)};`);
-            // console.log(`Deleted ${name}`);
+            // info(`Deleted ${name}`);
         } else {
-            // console.log(`${name} not found`);
+            // info(`${name} not found`);
         }
     }
 
@@ -73,7 +74,7 @@ export class SqlStore {
         },
         changeTracking?: TrackingOptions,
     ) {
-        console.log("SqlStore.setContainer()");
+        info("SqlStore.setContainer()");
         if (!this.db) throw new NoDatabaseException();
 
         const name = options.name.toLowerCase();
@@ -93,9 +94,9 @@ export class SqlStore {
                 await this.deleteContainer({ name });
             }
 
-            // console.log("Checking table exists: " + name);
+            // info("Checking table exists: " + name);
             if (!(await this.db.tableExists(name))) {
-                // console.log(`Creating container table '${options.name}'`)
+                // info(`Creating container table '${options.name}'`)
                 await this.db.createContainer({ name });
             }
 
@@ -133,15 +134,15 @@ export class SqlStore {
                     updates.push(`sensitive=${this.db.formatParamName(p)}`);
                 }
 
-                // console.log(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
-                // console.log(JSON.stringify(params))
+                // info(`UPDATE schema SET ${updates.join(",")} WHERE container=$1`);
+                // info(JSON.stringify(params))
                 const sql = `UPDATE ${this.db.encodeName("schema")} SET ${updates.join(",")} WHERE ${this.db.encodeName("container")}=${params.name("name")}`;
-                console.log(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
+                info(sql + ", with params: " + JSON.stringify(this.db.prepareParams(params)));
                 const execResult = await this.db.exec(
                     sql,
                     this.db.prepareParams(params),
                 );
-                console.log("execResult: " + JSON.stringify(execResult));
+                info("execResult: " + JSON.stringify(execResult));
 
                 // update indexes 
                 if (indexes && indexes.length > 0) {
@@ -187,7 +188,7 @@ export class SqlStore {
 							`ALTER TABLE ${this.db.encodeName(searchTableName)}
 							ADD COLUMN ${this.db.encodeName(prop.name)} ${dt};
 							`;
-                        console.log(sql);
+                        info(sql);
                         await this.db.exec(
 							sql
 						);
@@ -247,7 +248,7 @@ export class SqlStore {
     }    
 
     private indexUpdater(container: string, props: DBPropDef[]) {
-        console.log("SqlStore.indexUpdater()");
+        info("SqlStore.indexUpdater()");
         if (!this.db) throw new NoDatabaseException();
 
         // populate new columns
@@ -261,13 +262,13 @@ export class SqlStore {
         let attribColumnNames = props.map((def, i) => {
             return this.db?.encodeName(def.name);
         }).join(",");
-        console.log("attribColumnNames: " + JSON.stringify(attribColumnNames))
+        info("attribColumnNames: " + JSON.stringify(attribColumnNames))
 
         let attribValueParams = props.map((def) => params.name(def.name)).join(",");
-        console.log("attribValueParams: " + JSON.stringify(attribValueParams))
+        info("attribValueParams: " + JSON.stringify(attribValueParams))
 
         let attribUpdatePairs = props.map((def, i) => this.db?.encodeName(def.name) + "=" + params.name(def.name)).join(",");
-        console.log("attribUpdatePairs: " + JSON.stringify(attribUpdatePairs))
+        info("attribUpdatePairs: " + JSON.stringify(attribUpdatePairs))
 
         const searchTableName = this.db!.getSearchTableName(container);
 
@@ -280,9 +281,9 @@ export class SqlStore {
                 INSERT INTO ${this.db.encodeName(searchTableName)} 
                 (${this.db.encodeName("id")}, ${attribColumnNames})
                 VALUES (${params.name("id")}, ${attribValueParams})`;
-            console.log(sql);
-            console.log(JSON.stringify(params.prepare()))
-            console.log(JSON.stringify(attribColumnNames))
+            info(sql);
+            info(JSON.stringify(params.prepare()))
+            info(JSON.stringify(attribColumnNames))
             await this.db.exec(
                 sql,
                 params.prepare(),
@@ -297,7 +298,7 @@ export class SqlStore {
                 UPDATE ${this.db.encodeName(searchTableName)}
                 SET ${attribUpdatePairs}
                 WHERE ${this.db.encodeName("id")}=${params.name("id")}`;
-            console.log(sql);
+            info(sql);
             const result = await this.db.exec(
                 sql,
                 params.prepare(),
@@ -313,12 +314,12 @@ export class SqlStore {
             // if know for sure its a new object then slightly faster to just insert instead try update and fallback to insert
             isNewObject?: boolean
         ) {
-            console.log("SqlStore.indexUpdater.rebuildIndex()");
-            // console.log("rebuildIndex: " + id + ": " + JSON.stringify(value));
+            info("SqlStore.indexUpdater.rebuildIndex()");
+            // info("rebuildIndex: " + id + ": " + JSON.stringify(value));
 
             const values: any = {};
 
-            console.log("props: " + JSON.stringify(props))
+            info("props: " + JSON.stringify(props))
 
             for(let prop of props) {
                 let v;
@@ -391,7 +392,7 @@ export class SqlStore {
         roles?: string[],
 
     }) {
-        console.log("SqlStore.get()");
+        info("SqlStore.get()");
         if (!this.db) throw new NoDatabaseException();
 
 		let pruner: any;
@@ -474,7 +475,7 @@ export class SqlStore {
         // indicates that diffs should be determined and saved
         changeTracking?: TrackingOptions,
     ) {
-        console.log("SqlStore.set()");
+        info("SqlStore.set()");
         if (!this.db) throw new NoDatabaseException();
 
         const container = options.container;
@@ -531,7 +532,7 @@ export class SqlStore {
                     and version=${params.name("existingVersion")}
             `;
             const result = await this.db.exec(sql, params.prepare());
-            //console.log(result);
+            //info(result);
             if (!result.rowCount) {
                 // failed to update, is it because another update happened?
                 const maxRetries = 3;
@@ -567,7 +568,7 @@ export class SqlStore {
         }
 
         const insert = async () => {
-            console.log("SqlStore.set.insert()");
+            info("SqlStore.set.insert()");
             if (!this.db) throw new NoDatabaseException();
 
             const valueAsString = JSON.stringify(options.object);
@@ -586,8 +587,8 @@ export class SqlStore {
                     ${params.name("version")}
                 )`;
 
-            console.log(sql);
-            console.log(JSON.stringify(params.prepare()));
+            info(sql);
+            info(JSON.stringify(params.prepare()));
 
             const result = await this.db.exec(sql, params.prepare());
             if (!result.rowCount) {
@@ -620,7 +621,7 @@ export class SqlStore {
         // update indexes
         const indexes = await this.getIndexes(container);
         if (indexes && indexes.length > 0) {
-            console.log("indexes: "+ JSON.stringify(indexes))
+            info("indexes: "+ JSON.stringify(indexes))
             const props = this.db.parseIndexes(indexes);
 
             const { rebuildIndex } = this.indexUpdater(container, props);
@@ -646,7 +647,7 @@ export class SqlStore {
         },
         changeTracking?: TrackingOptions,
     ) {
-        console.log("SqlStore.del()");
+        info("SqlStore.del()");
         if (!this.db) throw new NoDatabaseException();
 
         const { container, id } = options;
@@ -692,7 +693,7 @@ export class SqlStore {
     }
 
     async getIndexes(container: string) {
-        console.log("SqlStore.getIndexes()");
+        info("SqlStore.getIndexes()");
         if (!this.db) throw new NoDatabaseException();
 
         const params = new QueryParams(this.db);
@@ -711,12 +712,12 @@ export class SqlStore {
     async reset(options: {
 
     }) {
-        console.log("SqlStore.reset()");
+        info("SqlStore.reset()");
         if (!this.db) throw new NoDatabaseException();
 
         // get all existing tables
         const names = await this.db.getUserTables();
-        console.log("reset: names: " + JSON.stringify(names));
+        info("reset: names: " + JSON.stringify(names));
         if (!names) return;
 
         const ignore: string[] = [
@@ -725,7 +726,7 @@ export class SqlStore {
         for(let row of names) {
             if (ignore.indexOf(row.name) < 0) {
                 const sql = `DROP TABLE ${this.db.encodeName(row.name)}`;
-                console.log(sql);
+                info(sql);
                 await this.db.exec(sql);
             }
         }
@@ -735,7 +736,7 @@ export class SqlStore {
 
     // NOTE: search & searchAll will automatically prune sensitive data
     async searchAll(queries: SearchOptions[]) {
-        console.log("SqlStore.searchAll()");
+        info("SqlStore.searchAll()");
         const results = [];
 
         for(let q of queries) {
@@ -747,7 +748,7 @@ export class SqlStore {
 
     // NOTE: search & searchAll will automatically prune sensitive data
     async search(options: SearchOptions) {
-        console.log("SqlStore.search()");
+        info("SqlStore.search()");
         if (!this.db) throw new NoDatabaseException();
 
 		const db = this.db;
@@ -771,7 +772,7 @@ export class SqlStore {
                 availableIndexes[ind.name] = true;
             }
         }
-        console.log("availableIndexes: " + JSON.stringify(availableIndexes));
+        info("availableIndexes: " + JSON.stringify(availableIndexes));
 
         const params = new QueryParams(this.db);
 
@@ -834,7 +835,7 @@ export class SqlStore {
                 qry = parsed.query;
             }
 
-            console.log("qry obj: " + JSON.stringify(qry))
+            info("qry obj: " + JSON.stringify(qry))
 
             try {
                 if (Array.isArray(qry)) {
@@ -871,7 +872,7 @@ export class SqlStore {
 				// only allow sort on indexed columns
 				// i.e. need to have pulled the data from json into an addressable col
 				if (!hasIndex(s.name)) {
-					console.log(`WARNING: Attempt to sort by non-indexed column ${s.name} ignored`);
+					info(`WARNING: Attempt to sort by non-indexed column ${s.name} ignored`);
 					continue;
 				}
 				orderSql.push(`s.${this.db.encodeName(s.name)} ${s.direction === "DESC" ? "DESC" : "ASC"}`);
@@ -951,7 +952,7 @@ export class SqlStore {
         from?: number, // id
         since?: string,
     }) {
-        console.log("SqlStore.getChanges()");
+        info("SqlStore.getChanges()");
         if (!this.db) throw new NoDatabaseException();
 
         //let sql = "SELECT id, container, id, change, timestamp FROM changes";
@@ -987,7 +988,7 @@ export class SqlStore {
     async merge(options: {
         changes: Change[],
     }) {
-        console.log("SqlStore.merge()");
+        info("SqlStore.merge()");
 
         for(let change of options.changes) {
             if (change.type === "object-add") {
@@ -1045,21 +1046,21 @@ export class SqlStore {
     }
 
     async applyChangesToObject(container: string, id: string, changes: Change[]) {
-        console.log("SqlStore.applyChangesToObject()");
+        info("SqlStore.applyChangesToObject()");
 
-        //console.log(`Applying changes to ${container}/${id}`);
+        //info(`Applying changes to ${container}/${id}`);
 
         // get existing value 
         const json = await this.get({ container, ids: [id] });
         if (!json) {
             // object no longer exists
-            // TODO: how report this error?
+			error("Object no longer exists");
             return;
         }
 
         const object = JSON.parse(json);
         if (!object) {
-            // TODO: how report this error?
+			error("JSON not valid")
             return;
         }
 
@@ -1096,14 +1097,14 @@ export class SqlStore {
         }
 
         for (let c of changes) {
-            //console.log("change: " + JSON.stringify(c));
+            //info("change: " + JSON.stringify(c));
 
             if (c.type === 'array-add') {
                 const a = getProp(c.prop!);
                 if (a) {
                     a.splice(c.index, 0, c.value);
                 } else {
-                    // TODO: error?
+                    error("array-add: Not found: " + c.prop);
                 }
 
             } else if (c.type === "array-update") {
@@ -1117,7 +1118,7 @@ export class SqlStore {
                         }
                     }
                 } else {
-                    // TODO: error?
+                    error("array-update: Not found: " + c.prop);
                 }
 
             } else if (c.type === 'array-delete') {
@@ -1131,7 +1132,7 @@ export class SqlStore {
                         }
                     }
                 } else {
-                    // TODO: error?
+                    error("array-delete: Not found: " + c.prop);
                 }
 
             } else if (c.type === 'array-order') {
@@ -1148,17 +1149,14 @@ export class SqlStore {
                     }
 
                 } else {
-                    // TODO: error?
-
+                    error("array-order: Not found: " + c.prop);
                 }
 
             } else if (c.type === 'prop-add') {
                 if (c.prop) {
                     setProp(c.prop, c.value);
-                    
                 } else {
-                    // TODO: error?
-
+                    error("prop-add: .prop not provided");
                 }
 
             } else if (c.type === 'prop-delete') {
@@ -1168,8 +1166,7 @@ export class SqlStore {
                         delete parent[c.prop];
                     }
                 } else {
-                    // TODO: error?
-
+                    error("prop-delete: .prop not provided");
                 }
 
             } else if (c.type === 'prop-rename') {
@@ -1182,17 +1179,14 @@ export class SqlStore {
                         delete parent[c.prop];
                     }
                 } else {
-                    // TODO: error?
-
+                    error("prop-rename: .prop or .value not provided");
                 }
 
             } else if (c.type === 'prop-update') {
                 if (c.prop) {
-                    setProp(c.prop, c.value);
-                    
+                    setProp(c.prop, c.value);                    
                 } else {
-                    // TODO: error?
-
+                    error("prop-update: .prop not provided");
                 }
 
             }
@@ -1226,7 +1220,7 @@ export class SqlStore {
 			);
 		`;
 
-		console.log(sql);
+		info(sql);
 
 		await this.db.exec(
 			sql

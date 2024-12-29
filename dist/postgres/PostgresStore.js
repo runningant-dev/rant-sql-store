@@ -5,6 +5,7 @@ const PostgresDB_1 = require("./PostgresDB");
 const SqlStore_1 = require("../common/SqlStore");
 const rant_utils_1 = require("rant-utils");
 const SqlDB_1 = require("../common/SqlDB");
+const log_1 = require("../log");
 class PostgresStore extends SqlStore_1.SqlStore {
     usePool = true;
     constructor(options) {
@@ -40,7 +41,7 @@ class PostgresStore extends SqlStore_1.SqlStore {
 				${this.db.encodeName(propName)}
 			);
 		`;
-        console.log(sql);
+        (0, log_1.info)(sql);
         await this.db.exec(sql);
     }
 }
