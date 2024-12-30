@@ -33,7 +33,7 @@ export class SqlStore {
     async getContainer(options: {
         name: string,
     }) {
-        info("SqlStore.getContainer()");
+        //info("SqlStore.getContainer()");
         if (!this.db) throw new NoDatabaseException();
 
         const name = options.name.toLowerCase();
@@ -759,7 +759,7 @@ export class SqlStore {
 
     // NOTE: search & searchAll will automatically prune sensitive data
     async search(options: SearchOptions) {
-        info("SqlStore.search()");
+        info("SqlStore.search('" + options.container + "')");
         if (!this.db) throw new NoDatabaseException();
 
 		const db = this.db;
@@ -847,7 +847,7 @@ export class SqlStore {
             }
 
             // info("qry obj: " + JSON.stringify(qry))
-			data(qry);
+			// data(qry);
 
             try {
                 if (Array.isArray(qry)) {

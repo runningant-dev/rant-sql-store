@@ -23,7 +23,7 @@ class SqlStore {
         return await this.db.close();
     }
     async getContainer(options) {
-        (0, log_1.info)("SqlStore.getContainer()");
+        //info("SqlStore.getContainer()");
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const name = options.name.toLowerCase();
@@ -586,7 +586,7 @@ class SqlStore {
     }
     // NOTE: search & searchAll will automatically prune sensitive data
     async search(options) {
-        (0, log_1.info)("SqlStore.search()");
+        (0, log_1.info)("SqlStore.search('" + options.container + "')");
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const db = this.db;
@@ -660,7 +660,7 @@ class SqlStore {
                 qry = parsed.query;
             }
             // info("qry obj: " + JSON.stringify(qry))
-            (0, log_1.data)(qry);
+            // data(qry);
             try {
                 if (Array.isArray(qry)) {
                     parseComparisonArray(qry);
