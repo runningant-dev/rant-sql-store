@@ -40,9 +40,6 @@ class PostgresDB extends SqlDB_1.SqlDB {
         };
     }
     async getOne(sql, params) {
-        (0, log_1.info)("PostgresDB.getOne()");
-        (0, log_1.data)(sql);
-        (0, log_1.data)(params);
         const result = await this.getAll(sql, params);
         if (result) {
             return result[0];
@@ -52,9 +49,10 @@ class PostgresDB extends SqlDB_1.SqlDB {
         }
     }
     async getAll(sql, params) {
-        (0, log_1.info)("PostgresDB.getAll()");
+        //info("PostgresDB.getAll()");
         (0, log_1.data)(sql);
-        (0, log_1.data)(params);
+        if (params !== undefined)
+            (0, log_1.data)(params);
         const queryResult = await this.db.query(sql, params);
         if (!queryResult || queryResult.rows.length <= 0)
             return undefined;

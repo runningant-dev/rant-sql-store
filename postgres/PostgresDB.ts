@@ -49,10 +49,6 @@ export class PostgresDB extends SqlDB {
     
 
     async getOne(sql: string, params?: any[]): Promise<any | undefined> {
-		info("PostgresDB.getOne()");
-		data(sql);
-		data(params);
-
 		const result = await this.getAll(sql, params);
         if (result) {
             return result[0];
@@ -62,9 +58,9 @@ export class PostgresDB extends SqlDB {
     }
 
     async getAll(sql: string, params?: any[]) {
-		info("PostgresDB.getAll()");
+		//info("PostgresDB.getAll()");
 		data(sql);
-		data(params);
+		if (params !== undefined) data(params);
 
         const queryResult = await this.db.query(sql, params);
         if (!queryResult || queryResult.rows.length <= 0) return undefined;
