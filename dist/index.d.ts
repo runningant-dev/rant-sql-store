@@ -1,3 +1,5 @@
+export * from "./common/SqlDB";
+export * from "./common/SqlStore";
 export * from "./postgres/PostgresDB";
 export * from "./postgres/PostgresStore";
 export * from "./postgres/PostgresStoreFactory";
