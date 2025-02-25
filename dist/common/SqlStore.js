@@ -7,20 +7,29 @@ const QueryParams_1 = require("./QueryParams");
 const rant_utils_1 = require("rant-utils");
 const uuid_1 = require("uuid");
 const log_1 = require("../log");
+;
 class SqlStore {
     db;
+    listeners = [];
     constructor() {
     }
     async connect() {
         (0, log_1.info)("SqlStore.connect()");
         // override with actual db connection
         // make sure once connected a call is made to db.checkForBaseRequirements()
+        await this.notify({
+            type: "connect",
+        });
     }
     async close() {
         (0, log_1.info)("SqlStore.close()");
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
-        return await this.db.close();
+        const result = await this.db.close();
+        await this.notify({
+            type: "close",
+        });
+        return result;
     }
     async getContainer(options) {
         //info("SqlStore.getContainer()");
@@ -28,28 +37,38 @@ class SqlStore {
             throw new SqlDB_1.NoDatabaseException();
         const name = options.name.toLowerCase();
         const row = await this.db.getOne(`SELECT * from ${this.db.encodeName("schema")} WHERE ${this.db.encodeName("container")} = '${name}'`);
-        return {
+        const result = {
             name,
             indexes: row ? JSON.parse(row.indexes) : undefined,
             sensitive: row ? JSON.parse(row.sensitive) : undefined,
         };
+        await this.notify({
+            type: "getcontainer",
+            container: result,
+        });
+        return result;
     }
     async deleteContainer(options) {
         (0, log_1.info)("SqlStore.deleteContainer()");
         if (!this.db)
             throw new SqlDB_1.NoDatabaseException();
         const name = options.name.toLowerCase();
+        const e = {
+            type: "delcontainer",
+        };
         // info(`Attempting to delete ${name}`);
         if (await this.db.tableExists(name)) {
             // info(`Removing table '${name}'`)
             await this.db.exec(`DELETE FROM ${this.db.encodeName("schema")} WHERE ${this.db.encodeName("container")} = '${name}';`);
             await this.db.exec(`DELETE FROM changes WHERE ${this.db.encodeName("container")} = '${name}';`);
             await this.db.exec(`DROP TABLE IF EXISTS ${this.db.encodeName(name)};`);
+            e.existed = true;
             // info(`Deleted ${name}`);
         }
         else {
             // info(`${name} not found`);
         }
+        await this.notify(e);
     }
     async setContainer(options, changeTracking) {
         (0, log_1.info)("SqlStore.setContainer()");
@@ -57,12 +76,17 @@ class SqlStore {
             throw new SqlDB_1.NoDatabaseException();
         const name = options.name.toLowerCase();
         const { indexes, sensitive, } = options;
+        const e = {
+            type: "setcontainer",
+        };
         try {
             if (options.delete) {
+                e.deleted = true;
                 await this.deleteContainer({ name });
                 return;
             }
             if (options.recreate) {
+                e.deleted = true;
                 await this.deleteContainer({ name });
             }
             // info("Checking table exists: " + name);
@@ -186,6 +210,7 @@ class SqlStore {
                 });
             }
         }
+        await this.notify(e);
         return true;
     }
     indexUpdater(container, props) {
@@ -328,6 +353,7 @@ class SqlStore {
             }
             return o;
         }
+        let result;
         if (options.ids.length === 1) {
             const id = options.ids[0];
             const params = new QueryParams_1.QueryParams(this.db);
@@ -338,10 +364,10 @@ class SqlStore {
 				WHERE id = ${params.name("id")}
 			`, params.prepare());
             if (row) {
-                return prepareRow(row);
+                result = prepareRow(row);
             }
             else {
-                return undefined;
+                result = undefined;
             }
         }
         else {
@@ -353,18 +379,22 @@ class SqlStore {
 				WHERE id in (${preparedIDs})
 			`);
             if (rows) {
-                if (rows.length <= 0)
-                    return [];
-                const result = [];
-                for (let r of rows) {
-                    result.push(prepareRow(r));
+                result = [];
+                if (rows.length > 0) {
+                    for (let r of rows) {
+                        result.push(prepareRow(r));
+                    }
                 }
-                return result;
             }
             else {
-                return undefined;
+                result = undefined;
             }
         }
+        await this.notify({
+            type: "get",
+            result,
+        });
+        return result;
     }
     async set(options, 
     // indicates that diffs should be determined and saved
@@ -376,9 +406,14 @@ class SqlStore {
         // get the id
         let id = options.object.id;
         let prevValue;
+        let e = {
+            type: "set",
+            options,
+        };
         if (!id) {
             // if inserting, auto create a id
             id = (0, uuid_1.v1)(); // chronological ids
+            e.autoAssignedID = id;
         }
         else if (options.merge) {
             // get existing data 
@@ -484,6 +519,7 @@ class SqlStore {
             if (options.authToken)
                 options.object.updated_by = options.authToken.id;
             await update(existing, 0);
+            e.updated = true;
         }
         else {
             options.object.created = (0, rant_utils_1.formatDatabaseDateTime)(new Date());
@@ -491,6 +527,7 @@ class SqlStore {
             if (options.authToken)
                 options.object.created_by = options.authToken.id;
             await insert();
+            e.inserted = true;
         }
         // update indexes
         const indexes = await this.getIndexes(container);
@@ -505,6 +542,10 @@ class SqlStore {
         // also update the version to match current db version
         options.object.version = newVersion;
         //return result;
+        await this.notify({
+            type: "set",
+            result: options.object,
+        });
         if (options.returnObject) {
             return options.object;
         }
@@ -542,6 +583,10 @@ class SqlStore {
         else {
             throw `Item ${container}/${id} not found`;
         }
+        await this.notify({
+            type: "del",
+            options,
+        });
         return true;
     }
     async getIndexes(container) {
@@ -594,6 +639,10 @@ class SqlStore {
         let paramCounter = 1;
         const returnType = options.returnType ? options.returnType : "ids";
         let qry = options.qry;
+        const e = {
+            type: "search",
+            options,
+        };
         // get the props that have been indexed 
         // ... as we parse the query need to confirm that only those are being referenced
         const container = await this.getContainer({ name: options.container });
@@ -718,56 +767,57 @@ class SqlStore {
             };
         }
         const items = await this.db.getAll(sql, params.prepare());
-        if (returnType === "ids") {
-            // ids
-            // do immediately and return result so don't do any prune logic unnecessarily
-            const result = [];
-            if (items) {
-                for (let i of items) {
-                    result.push(i.id);
-                }
-            }
-            return result;
-        }
+        let result;
         function hasRole(name) {
             if (!options.roles)
                 return false;
             return (options.roles.indexOf(name) >= 0);
         }
-        const { isPruneRequired, prune } = await (0, rant_store_1.pruneSensitiveData)(this, container, hasRole);
-        if (returnType === "map") {
-            // map
-            const map = {};
+        if (returnType === "ids") {
+            // ids
+            // do immediately and return result so don't do any prune logic unnecessarily
+            result = [];
             if (items) {
-                for (let item of items) {
-                    const o = JSON.parse(item.value);
-                    if (isPruneRequired)
-                        prune(o);
-                    o.version = item.version;
-                    map[item.id] = o;
+                for (let i of items) {
+                    result.push(i.id);
                 }
             }
-            return map;
         }
-        else if (returnType === "array") {
-            // array
-            if (items) {
-                const result = [];
-                for (let item of items) {
-                    // expand out the .value to be actual JSON object
-                    const o = JSON.parse(item.value);
-                    if (isPruneRequired)
-                        prune(o);
-                    o.version = item.version;
-                    o.id = item.id;
-                    result.push(o);
+        else {
+            const { isPruneRequired, prune } = await (0, rant_store_1.pruneSensitiveData)(this, container, hasRole);
+            if (returnType === "map") {
+                // map
+                const map = {};
+                if (items) {
+                    for (let item of items) {
+                        const o = JSON.parse(item.value);
+                        if (isPruneRequired)
+                            prune(o);
+                        o.version = item.version;
+                        map[item.id] = o;
+                    }
                 }
-                return result;
+                result = map;
             }
-            else {
-                return [];
+            else if (returnType === "array") {
+                // array
+                result = [];
+                if (items) {
+                    for (let item of items) {
+                        // expand out the .value to be actual JSON object
+                        const o = JSON.parse(item.value);
+                        if (isPruneRequired)
+                            prune(o);
+                        o.version = item.version;
+                        o.id = item.id;
+                        result.push(o);
+                    }
+                }
             }
         }
+        e.result = result;
+        await this.notify(e);
+        return result;
     }
     async getChanges(options) {
         (0, log_1.info)("SqlStore.getChanges()");
@@ -1006,6 +1056,19 @@ class SqlStore {
 		`;
         (0, log_1.info)(sql);
         await this.db.exec(sql);
+    }
+    async notify(e) {
+        for (let h of this.listeners) {
+            await h(e);
+        }
+    }
+    addEventListener(options) {
+        this.listeners.push(options.handler);
+    }
+    removeEventListener(options) {
+        const i = this.listeners.indexOf(options.handler);
+        if (i >= 0)
+            this.listeners.splice(i, 1);
     }
 }
 exports.SqlStore = SqlStore;

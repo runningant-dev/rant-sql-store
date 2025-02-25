@@ -1,7 +1,13 @@
 import { AuthToken, Change, ContainerDef, ObjectDef, SearchOptions, TrackingOptions } from "rant-store";
 import { SqlDB } from "./SqlDB";
+export declare type EventType = "connect" | "close" | "getcontainer" | "delcontainer" | "setcontainer" | "get" | "set" | "del" | "search" | "createindex";
+export interface Event {
+    type: EventType;
+    [k: string]: any;
+}
 export declare class SqlStore {
     db?: SqlDB;
+    listeners: any[];
     constructor();
     connect(): Promise<void>;
     close(): Promise<void>;
@@ -52,4 +58,11 @@ export declare class SqlStore {
     }): Promise<void>;
     applyChangesToObject(container: string, id: string, changes: Change[]): Promise<void>;
     createIndex(searchTableName: string, propName: string): Promise<void>;
+    notify(e: Event): Promise<void>;
+    addEventListener(options: {
+        handler: (e: any) => void;
+    }): void;
+    removeEventListener(options: {
+        handler: (e: any) => void;
+    }): void;
 }
