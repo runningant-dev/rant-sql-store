@@ -716,10 +716,8 @@ export class SqlStore {
 
         //return result;
 
-		await this.notify({
-			type: "set",
-			result: options.object,
-		});
+		e.result = options.object;
+		await this.notify(e);
 
         if (options.returnObject) {
             return options.object;

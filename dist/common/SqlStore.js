@@ -542,10 +542,8 @@ class SqlStore {
         // also update the version to match current db version
         options.object.version = newVersion;
         //return result;
-        await this.notify({
-            type: "set",
-            result: options.object,
-        });
+        e.result = options.object;
+        await this.notify(e);
         if (options.returnObject) {
             return options.object;
         }
